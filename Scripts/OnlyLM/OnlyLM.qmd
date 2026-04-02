@@ -1,0 +1,368 @@
+---
+title: "OnlyLM"
+execute: 
+  message: false
+  warning: false
+format: 
+  html:
+    code-fold: true
+    
+---
+
+```{r}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(Matrix)
+library(ggplot2)
+library(hdf5r)
+library(SeuratData)
+library(ggrepel)
+library(tidyverse)
+
+```
+## Importing and orginising data
+
+```{r}
+#Setting working directory
+setwd("~/T10")
+
+#Importing data from files
+#LM files
+rawLM1 <- Read10X_h5(filename ="data/LM/PDX1/1_JEPDX1_6/sample_filtered_feature_bc_matrix.h5")
+rawLM2 <- Read10X_h5(filename ="data/LM/PDX1/2_CHPDX1_5/sample_filtered_feature_bc_matrix.h5")
+rawLM4 <- Read10X_h5(filename ="data/LM/PDX2/4_JEPDX2_5/sample_filtered_feature_bc_matrix.h5")
+rawLM5 <- Read10X_h5(filename ="data/LM/PDX2/5_CHPDX2_5/sample_filtered_feature_bc_matrix.h5")
+rawLM6 <- Read10X_h5(filename ="data/LM/PDX2/6_CHPDX2_7/sample_filtered_feature_bc_matrix.h5")
+rawLM8 <- Read10X_h5(filename ="data/LM/PDX3/8_JEPDX3_5/sample_filtered_feature_bc_matrix.h5")
+rawLM9 <- Read10X_h5(filename ="data/LM/PDX3/9_CHPDX3_3/sample_filtered_feature_bc_matrix.h5")
+rawLM10 <- Read10X_h5(filename ="data/LM/PDX3/10_CHPDX3_5/sample_filtered_feature_bc_matrix.h5")
+
+#Creating SEURAT objects
+serLM1 <- CreateSeuratObject(rawLM1, project = "LM1")
+serLM2 <- CreateSeuratObject(rawLM2, project = "LM2")
+serLM4 <- CreateSeuratObject(rawLM4, project = "LM4")
+serLM5 <- CreateSeuratObject(rawLM5, project = "LM5")
+serLM6 <- CreateSeuratObject(rawLM6, project = "LM6")
+serLM8 <- CreateSeuratObject(rawLM8, project = "LM8")
+serLM9 <- CreateSeuratObject(rawLM9, project = "LM9")
+serLM10 <- CreateSeuratObject(rawLM10, project = "LM10")
+
+#Addning information layers
+serLM1$PDX <- "LU-NB-1"
+serLM2$PDX <- "LU-NB-1"
+serLM4$PDX <- "LU-NB-2"
+serLM5$PDX <- "LU-NB-2"
+serLM6$PDX <- "LU-NB-2"
+serLM8$PDX <- "LU-NB-3"
+serLM9$PDX <- "LU-NB-3"
+serLM10$PDX <- "LU-NB-3"
+
+serLM1$type <- "LM"
+serLM2$type <- "LM"
+serLM4$type <- "LM"
+serLM5$type <- "LM"
+serLM6$type <- "LM"
+serLM8$type <- "LM"
+serLM9$type <- "LM"
+serLM10$type <- "LM"
+
+serLM1$mouse <- "mouse1"
+serLM2$mouse <- "mouse2"
+serLM4$mouse <- "mouse4"
+serLM5$mouse <- "mouse5"
+serLM6$mouse <- "mouse6"
+serLM8$mouse <- "mouse8"
+serLM9$mouse <- "mouse8"
+serLM10$mouse <- "mouse10"
+
+serLM1$batch <- "B1"
+serLM2$batch <- "B1"
+serLM4$batch <- "B1"
+serLM5$batch <- "B1"
+serLM6$batch <- "B2"
+serLM8$batch <- "B2"
+serLM9$batch <- "B2"
+serLM10$batch <- "B2"
+
+#Merging into 1 object
+allData <- merge(serLM1, c(serLM2, serLM4, serLM5, serLM6, serLM8, serLM9, serLM10), add.cell.ids = c("LM1", "LM2", "LM4", "LM5", "LM6", "LM8", "LM9", "LM10"))
+allData <- JoinLayers(allData)
+
+#Remove unecessary objects
+rm(serLM1, serLM2, serLM4, serLM5, serLM6, serLM8, serLM9, serLM10, rawLM1, rawLM2, rawLM4, rawLM5, rawLM6, rawLM8, rawLM9, rawLM10)
+gc()
+
+#Showing size of dataset
+dim(allData)
+table(allData$mouse)
+table(allData$PDX)
+```
+Size of original dataset
+
+##Filtering
+
+```{r}
+#Showing Mitochondrial, Ribosomal, Hemoglobin, Platelate markers
+allData <- PercentageFeatureSet(allData, "^MT-", col.name = "percent_mito")
+allData <- PercentageFeatureSet(allData, "^RP[SL]", col.name = "percent_ribo")
+allData <- PercentageFeatureSet(allData, "^HB[^(P|E|S)]", col.name = "percent_hb")
+allData <- PercentageFeatureSet(allData, "PECAM1|PF4", col.name = "percent_plat")
+
+#Creating violin plots of QC variables
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb", "percent_plat")
+VlnPlot(allData, group.by = "mouse", split.by = "type", features = feats, pt.size = 0.05, ncol = 3)
+
+```
+We see high mitochondrial gene expression in many cells, this is indicative of cell membrane damage, allowing free RNA to leave the cytoplasm but not mitochondias due to their size. We want to filter out these cells. As well as cells with low total expression and low ribosomal expression. 
+
+We can also limit the amount of genes we analyse by excluding genes expressed by only a few cells, as they will not hold any significant information for analysis. We will also exclude mitochondrial, ribosomal, and hemoglobin genes as physiological fluctuations in these may influence our analysis as well. 
+```{r}
+#Filter out cells and genes with low expression
+selectCell <- WhichCells(allData, expression = nFeature_RNA > 100)
+selectFeat <- rownames(allData)[Matrix::rowSums(allData[["RNA"]]$counts) > 10]
+data.filt <- subset(allData, features = selectFeat, cells = selectCell)
+
+#Filter out cells with high mitocondrial and low ribosomal expression
+data.filt <- subset(data.filt, percent_mito < 20 & percent_ribo > 5)
+```
+Filtering done:
+*Remove cells with less than 100 genes expressed.
+*Remove genes expressed by less than 10 cells.
+*Remove cells with above 20% of gene expression being mitochondrial genes.
+*Remove cells with less than 5% of gene expression being ribosomal genes.
+```{r}
+#Showing size of dataset
+dim(data.filt)
+table(data.filt$mouse)
+table(data.filt$PDX)
+
+
+#New violin plot of QC variables
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb")
+VlnPlot(data.filt, group.by = "mouse", features = feats, pt.size = 0.05, ncol = 3) + NoLegend()
+```
+
+Size of dataset and visualization of quality control variables after first filtering. 
+
+```{r}
+# Filter Mitochondrial, Ribosomal and Hemoglobin genes
+data.filt <- data.filt[!grepl("^MT-", rownames(data.filt)), ]
+data.filt <- data.filt[ ! grepl("^RP[SL]", rownames(data.filt)), ]
+data.filt <- data.filt[!grepl("^HB[^(P|E|S)]", rownames(data.filt)), ]
+dim(data.filt)
+```
+
+Filtering done:
+*Remove mitochondrial genes
+*Remove ribosomal genes
+*Remove Hemoglobin genes
+Showing new dimensions fo dataset.
+
+```{r}
+suppressMessages(library(DoubletFinder))
+run_doubletfinder_custom <- function(seu_sample_subset, multiplet_rate = NULL){
+  # for debug
+  #seu_sample_subset <- samp_split[[1]]
+  # Print sample number
+  print(paste0("Sample ", unique(seu_sample_subset[['batch']]), '...........')) 
+  
+  #Manually setting predicted doublet rate based on recovered cells per batch
+  if(unique(seu_sample_subset[['batch']]) == 'B1'){
+    multiplet_rate <- 0.008
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B2'){
+    multiplet_rate <- 0.008
+  }
+  
+  # Pre-process seurat object with standard seurat workflow --- 
+  sample <- NormalizeData(seu_sample_subset, verbose = FALSE)
+  sample <- FindVariableFeatures(sample, verbose = FALSE)
+  sample <- ScaleData(sample, verbose = FALSE)
+  sample <- RunPCA(sample, nfeatures.print = 10, verbose = FALSE)
+  
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  percent_stdv <- (stdv/sum(stdv)) * 100
+  cumulative <- cumsum(percent_stdv)
+  co1 <- which(cumulative > 90 & percent_stdv < 5)[1] 
+  co2 <- sort(which((percent_stdv[1:length(percent_stdv) - 1] - 
+                       percent_stdv[2:length(percent_stdv)]) > 0.1), 
+              decreasing = T)[1] + 1
+  min_pc <- min(co1, co2)
+  
+  # Finish pre-processing with min_pc
+  sample <- RunUMAP(sample, dims = 1:min_pc, verbose = FALSE)
+  sample <- FindNeighbors(object = sample, dims = 1:min_pc, verbose = FALSE)              
+  sample <- FindClusters(object = sample, resolution = 0.1, verbose = FALSE)
+  
+  # pK identification (no ground-truth) 
+  #introduces artificial doublets in varying props, merges with real data set and 
+  # preprocesses the data + calculates the prop of artficial neighrest neighbours, 
+  # provides a list of the proportion of artificial nearest neighbours for varying
+  # combinations of the pN and pK
+  sweep_list <- paramSweep(sample, PCs = 1:min_pc, sct = FALSE)   
+  sweep_stats <- summarizeSweep(sweep_list)
+  bcmvn <- find.pK(sweep_stats) # computes a metric to find the optimal pK value (max mean variance normalised by modality coefficient)
+  # Optimal pK is the max of the bimodality coefficient (BCmvn) distribution
+  optimal.pk <- bcmvn %>% 
+    dplyr::filter(BCmetric == max(BCmetric)) %>%
+    dplyr::select(pK)
+  optimal.pk <- as.numeric(as.character(optimal.pk[[1]]))
+  
+  ## Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters # use the clusters as the user-defined cell types
+  homotypic.prop <- modelHomotypic(annotations) # get proportions of homotypic doublets
+  
+  #multiply by number of cells to get the number of expected multiplets
+  nExp.poi <- round(multiplet_rate * nrow(sample@meta.data)) 
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop)) # expected number of doublets
+  
+  # run DoubletFinder
+  sample <- doubletFinder(seu = sample, 
+                          PCs = 1:min_pc, 
+                          pK = optimal.pk, #the neighborhood size used to compute the number of artificial nearest neighbours
+                          nExp = nExp.poi.adj) #number of expected real doublets
+  
+  # change name of metadata column with Singlet/Doublet information
+  colnames(sample@meta.data)[grepl('DF.classifications.*', colnames(sample@meta.data))] <- "doublet_finder"
+  
+  #DimPlot(sample, group.by = "doublet_finder")
+  
+  #get the metadata column with singlet, doublet info
+  double_finder_res <- sample@meta.data['doublet_finder'] 
+  #add the cell IDs as new column to be able to merge correctly
+  double_finder_res <- rownames_to_column(double_finder_res, "row_names") 
+  return(double_finder_res)
+}
+
+data.split <- SplitObject(data.filt, split.by = "batch")
+data.split <- lapply(data.split, run_doubletfinder_custom)
+
+sglt_dblt_metadata <- data.frame(bind_rows(data.split)) # merge to a single dataframe
+rownames(sglt_dblt_metadata) <- sglt_dblt_metadata$row_names # assign cell IDs to row names to ensure match
+sglt_dblt_metadata$row_names <- NULL
+head(sglt_dblt_metadata)
+data.filt <- AddMetaData(data.filt, sglt_dblt_metadata, col.name = 'doublet_finder')
+
+# Check how doublets singlets differ in QC measures per sample.
+VlnPlot(data.filt, group.by = 'batch', split.by = "doublet_finder",
+        features = c("nFeature_RNA", "nCount_RNA"), 
+        ncol = 2, pt.size = 0) + theme(legend.position = 'right')
+
+```
+Plot showing higher counts and featured genes in doublets than singlets.
+
+```{r}
+suppressMessages(library(DoubletFinder))
+data.filt <- data.filt[, data.filt@meta.data[, "doublet_finder"] == "Singlet"]
+dim(data.filt)
+table(data.filt$mouse)
+table(data.filt$PDX)
+```
+
+Dataset size after filtering
+Filtering done:
+*Remove doublets. (amount of doublets filtered is based of predicted doublets, which increase with batch size. Liver metastasis sampels wer done with sample 1-4 in one batch and 5-8 in one. All primary tumor samples were run in individual, larger batches, leading to a higher frequency of doublets as well.)
+
+##Preparation of data, Integration
+Normalizing data: Each cell has a different total numbers of reads. Normalising compensates for that.  
+Finding variable features: Finding genes with high variance.
+Scaling data: Centers and equalizes the value of each genes. Sets mean = 0 and variance = 1.
+PCA: Weights the found variable features to capture as muchect.
+
+```{r}
+data.filt[["RNA"]] <- split(data.filt[["RNA"]], f = data.filt$batch)
+
+data.filt <- NormalizeData(data.filt, verbose = FALSE)
+data.filt <- FindVariableFeatures(data.filt, verbose = FALSE)
+data.filt <- ScaleData(data.filt, verbose = FALSE)
+data.pca <- RunPCA(data.filt, verbose = FALSE)
+
+#Integrating
+data.integ <- IntegrateLayers(object = data.pca, method = HarmonyIntegration, orig.reduction = "pca", new.reduction = "harmony",
+                             verbose = FALSE)
+data.integ[["RNA"]] <- JoinLayers(data.integ[["RNA"]])
+
+
+#Printing components of PCA
+wrap_plots(
+  DimPlot(data.pca, reduction = "pca", group.by = "PDX", dims = 1:2),
+  DimPlot(data.pca, reduction = "pca", group.by = "PDX", dims = 3:4),
+  DimPlot(data.pca, reduction = "pca", group.by = "PDX", dims = 5:6),
+  ncol = 3
+) + plot_layout(guides = "collect")
+
+```
+Showing the variance captured by first 6 PCA dimensions. (Maybe not relevant to show?) 
+```{r}
+#What genes contribute to PCs
+VizDimLoadings(data.pca, dims = 1:4, reduction = "pca", ncol = 4, balanced = T)
+```
+Showing what genes contributed first 4 PCA dimensions. (Relevant?)
+
+##Visualising using UMAP and tSNE
+UMAP is better for visualizing variability between cell clusters. tSNE is better for visualizing in-group variability. 
+
+```{r}
+#UMAP on integrated data
+data.umap <- RunUMAP(data.integ, dims = 1:30, reduction = "harmony", reduction.name = "umap_harmony", verbose = FALSE)
+#UMAP on NonIntegrated data
+data.umapNonInt <- RunUMAP(data.pca, dims = 1:30, reduction = "pca", verbose = FALSE)
+
+#tSNE on integrated data
+data.tsne <- RunTSNE(
+  data.integ,
+  reduction = "harmony", dims = 1:15,
+  perplexity = 30,
+  max_iter = 1000,
+  theta = 0.5,
+  eta = 200,
+  num_threads = 0,
+  verbose = FALSE
+)
+#tSNE on NonIntegrated data
+data.tsneNonInt <- RunTSNE(
+  data.pca,
+  reduction = "pca", dims = 1:15,
+  perplexity = 30,
+  max_iter = 1000,
+  theta = 0.5,
+  eta = 200,
+  num_threads = 0,
+  vebrose = FALSE
+)
+
+#Summorize based on mouse
+wrap_plots(
+  DimPlot(data.umapNonInt, reduction = "umap", group.by = "PDX") + ggtitle("NonIntegrated UMAP"),
+  DimPlot(data.umap, reduction = "umap_harmony", group.by = "PDX") + ggtitle("Integrated UMAP"),
+  DimPlot(data.tsneNonInt, reduction = "tsne", group.by = "PDX") + ggtitle("NonIntegrated tSNE"),
+  DimPlot(data.tsne, reduction = "tsne", group.by = "PDX") + ggtitle("Integrated tSNE"),
+  ncol = 2
+) + plot_layout(guides = "collect")
+```
+Showing UMAP and tSNE based on mouse and before and after compensating for batch effect(integrating)
+
+##Clustering
+```{r}
+#Clustering
+data.umap <- FindNeighbors(data.umap, dims = 1:20, verbose = FALSE)
+data.umap <- FindClusters(data.umap, resolution = 0.5, verbose = FALSE)
+
+data.tsne <- FindNeighbors(data.tsne, dims = 1:20, verbose = FALSE)
+data.tsne <- FindClusters(data.tsne, resolution = 0.5, verbose = FALSE)
+
+#Visualising if calculated clusters correspond to celltypes
+wrap_plots(
+  DimPlot(data.umap, reduction = "umap_harmony") + ggtitle("UMAP clustered"),
+  DimPlot(data.umap, reduction = "umap_harmony", group.by = "PDX") + ggtitle("UMAP PDX"),
+  DimPlot(data.umap, reduction = "umap_harmony", group.by = "mouse") + ggtitle("UMAP mouse"),
+  DimPlot(data.tsne, reduction = "tsne") + ggtitle("tSNE clustered"),
+  DimPlot(data.tsne, reduction = "tsne", group.by = "PDX") + ggtitle("tSNE PDX"),
+  DimPlot(data.tsne, reduction = "tsne", group.by = "mouse") + ggtitle("tSNE mouse"),
+  ncol = 3
+) + plot_layout(guides = "collect")
+```
+
+Visualizing if calculated clusters and how they correspond to PDX and mouse

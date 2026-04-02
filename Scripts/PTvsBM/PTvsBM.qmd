@@ -1,0 +1,648 @@
+---
+title: "PTvsBM"
+execute: 
+  message: false
+  warning: false
+format: 
+  html:
+    code-fold: true
+---
+```{r load packages}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(Matrix)
+library(ggplot2)
+library(hdf5r)
+library(SeuratData)
+library(ggrepel)
+library(tidyverse)
+library(decontX)
+library(SingleCellExperiment)
+library(pheatmap)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+library(clusterProfiler)
+library(enrichplot)
+library(DOSE)
+library(enrichplot)
+library(MAST)
+library(lme4)
+library(DoMultiBarHeatmap)
+library(RColorBrewer)
+library(colorRamp2)
+library(scCustomize)
+library(DoubletFinder)
+library(dendextend)
+library(ggcorrplot)
+library(ggtext)
+library(grid)
+library(ComplexHeatmap)
+library(DESeq2)
+library(muscat)
+```
+
+```{r load objects}
+#Setting working directory
+setwd("~/T10")
+
+#Getting filtered objects
+filtPT3A <- Read10X("data/PT/PDX1/3_JEPDX1_7/#A (17th February)/filtered_feature_bc_matrix/")
+filtPT3B <- Read10X("data/PT/PDX1/3_JEPDX1_7/#B (7th March)/filtered_feature_bc_matrix/")
+filtPT4 <- Read10X("data/PT/PDX2/4_JEPDX2_5/filtered_feature_bc_matrix/")
+filtPT5 <- Read10X_h5(filename ="data/PT/PDX2/5_CHPDX2_5/filtered_feature_bc_matrix.h5")
+filtPT7 <- Read10X_h5(filename ="data/PT/PDX2/7_CHPDX2_2/filtered_feature_bc_matrix.h5")
+filtPT8 <- Read10X_h5(filename ="data/PT/PDX3/8_JEPDX3_5/filtered_feature_bc_matrix.h5")
+filtPT9 <- Read10X_h5(filename ="data/PT/PDX3/9_CHPDX3_3/filtered_feature_bc_matrix.h5")
+filtPT10 <- Read10X_h5(filename ="data/PT/PDX3/10_CHPDX3_5/filtered_feature_bc_matrix.h5")
+
+filtBM3 <- Read10X("data/BM/PDX1/3_JEPDX1_7/filtered_feature_bc_matrix/")
+filtBM4 <- Read10X("data/BM/PDX2/4_JEPDX2_5/filtered_feature_bc_matrix/")
+filtBM5 <- Read10X_h5(filename ="data/BM/PDX2/5_CHPDX2_5/filtered_feature_bc_matrix.h5")
+filtBM7A <- Read10X_h5(filename ="data/BM/PDX2/7_CHPDX2_2/#A/filtered_feature_bc_matrix.h5")
+filtBM7B <- Read10X_h5(filename ="data/BM/PDX2/7_CHPDX2_2/#B/filtered_feature_bc_matrix.h5")
+filtBM8 <- Read10X("data/BM/PDX3/8_JEPDX3_5/filtered_feature_bc_matrix/")
+filtBM9 <- Read10X_h5(filename ="data/BM/PDX3/9_CHPDX3_3/filtered_feature_bc_matrix.h5")
+filtBM10 <- Read10X_h5(filename ="data/BM/PDX3/10_CHPDX3_5/filtered_feature_bc_matrix.h5")
+
+#Creating seurat objects
+serPT3A <- CreateSeuratObject(filtPT3A, project = "PT_3_JEPDX1_7A")
+serPT3B <- CreateSeuratObject(filtPT3B, project = "PT_3_JEPDX1_7B")
+serPT4 <- CreateSeuratObject(filtPT4, project = "PT_4_JEPDX2_5")
+serPT5 <- CreateSeuratObject(filtPT5, project = "PT_5_CHPDX2_5")
+serPT7 <- CreateSeuratObject(filtPT7, project = "PT_7_CHPDX2_2")
+serPT8 <- CreateSeuratObject(filtPT8, project = "PT_8_JEPDX3_5")
+serPT9 <- CreateSeuratObject(filtPT9, project = "PT_9_CHPDX3_3")
+serPT10 <- CreateSeuratObject(filtPT10, project = "PT_10_CHPDX3_5")
+
+serBM3 <- CreateSeuratObject(filtBM3, project = "BM_3_JEPDX1_7")
+serBM4 <- CreateSeuratObject(filtBM4, project = "BM_4_JEPDX2_5")
+serBM5 <- CreateSeuratObject(filtBM5, project = "BM_5_CHPDX2_5")
+serBM7A <- CreateSeuratObject(filtBM7A, project = "BM_7_CHPDX2_2A")
+serBM7B <- CreateSeuratObject(filtBM7B, project = "BM_7_CHPDX2_2B")
+serBM8 <- CreateSeuratObject(filtBM8, project = "BM_8_JEPDX3_5")
+serBM9 <- CreateSeuratObject(filtBM9, project = "BM_9_CHPDX3_3")
+serBM10 <- CreateSeuratObject(filtBM10, project = "BM_10_CHPDX3_5")
+
+#Getting unfiltered objects
+rawPT3A <- Read10X("data/PT/PDX1/3_JEPDX1_7/#A (17th February)/raw_feature_bc_matrix/")
+rawPT3B <- Read10X("data/PT/PDX1/3_JEPDX1_7/#B (7th March)/raw_feature_bc_matrix/")
+rawPT4 <- Read10X("data/PT/PDX2/4_JEPDX2_5/raw_feature_bc_matrix/")
+rawPT5 <- Read10X_h5(filename ="data/PT/PDX2/5_CHPDX2_5/raw_feature_bc_matrix.h5")
+rawPT7 <- Read10X_h5(filename ="data/PT/PDX2/7_CHPDX2_2/raw_feature_bc_matrix.h5")
+rawPT8 <- Read10X_h5(filename ="data/PT/PDX3/8_JEPDX3_5/raw_feature_bc_matrix.h5")
+rawPT9 <- Read10X_h5(filename ="data/PT/PDX3/9_CHPDX3_3/raw_feature_bc_matrix.h5")
+rawPT10 <- Read10X_h5(filename ="data/PT/PDX3/10_CHPDX3_5/raw_feature_bc_matrix.h5")
+
+rawBM3 <- Read10X("data/BM/PDX1/3_JEPDX1_7/raw_feature_bc_matrix/")
+rawBM4 <- Read10X("data/BM/PDX2/4_JEPDX2_5/raw_feature_bc_matrix/")
+rawBM5 <- Read10X_h5(filename ="data/BM/PDX2/5_CHPDX2_5/raw_feature_bc_matrix.h5")
+rawBM7A <- Read10X_h5(filename ="data/BM/PDX2/7_CHPDX2_2/#A/raw_feature_bc_matrix.h5")
+rawBM7B <- Read10X_h5(filename ="data/BM/PDX2/7_CHPDX2_2/#B/raw_feature_bc_matrix.h5")
+rawBM8 <- Read10X("data/BM/PDX3/8_JEPDX3_5/raw_feature_bc_matrix/")
+rawBM9 <- Read10X_h5(filename ="data/BM/PDX3/9_CHPDX3_3/raw_feature_bc_matrix.h5")
+rawBM10 <- Read10X_h5(filename ="data/BM/PDX3/10_CHPDX3_5/raw_feature_bc_matrix.h5")
+```
+
+```{r DecontX}
+#Creating singleCellExperiment objects
+scePT3A.filt <- SingleCellExperiment(list(counts = filtPT3A))
+scePT3B.filt <- SingleCellExperiment(list(counts = filtPT3B))
+scePT4.filt <- SingleCellExperiment(list(counts = filtPT4))
+scePT5.filt <- SingleCellExperiment(list(counts = filtPT5))
+scePT7.filt <- SingleCellExperiment(list(counts = filtPT7))
+scePT8.filt <- SingleCellExperiment(list(counts = filtPT8))
+scePT9.filt <- SingleCellExperiment(list(counts = filtPT9))
+scePT10.filt <- SingleCellExperiment(list(counts = filtPT10))
+scePT3A.raw <- SingleCellExperiment(list(counts = rawPT3A))
+scePT3B.raw <- SingleCellExperiment(list(counts = rawPT3B))
+scePT4.raw <- SingleCellExperiment(list(counts = rawPT4))
+scePT5.raw <- SingleCellExperiment(list(counts = rawPT5))
+scePT7.raw <- SingleCellExperiment(list(counts = rawPT7))
+scePT8.raw <- SingleCellExperiment(list(counts = rawPT8))
+scePT9.raw <- SingleCellExperiment(list(counts = rawPT9))
+scePT10.raw <- SingleCellExperiment(list(counts = rawPT10))
+
+sceBM3.filt <- SingleCellExperiment(list(counts = filtBM3))
+sceBM4.filt <- SingleCellExperiment(list(counts = filtBM4))
+sceBM5.filt <- SingleCellExperiment(list(counts = filtBM5))
+sceBM7A.filt <- SingleCellExperiment(list(counts = filtBM7A))
+sceBM7B.filt <- SingleCellExperiment(list(counts = filtBM7B))
+sceBM8.filt <- SingleCellExperiment(list(counts = filtBM8))
+sceBM9.filt <- SingleCellExperiment(list(counts = filtBM9))
+sceBM10.filt <- SingleCellExperiment(list(counts = filtBM10))
+sceBM3.raw <- SingleCellExperiment(list(counts = rawBM3))
+sceBM4.raw <- SingleCellExperiment(list(counts = rawBM4))
+sceBM5.raw <- SingleCellExperiment(list(counts = rawBM5))
+sceBM7A.raw <- SingleCellExperiment(list(counts = rawBM7A))
+sceBM7B.raw <- SingleCellExperiment(list(counts = rawBM7B))
+sceBM8.raw <- SingleCellExperiment(list(counts = rawBM8))
+sceBM9.raw <- SingleCellExperiment(list(counts = rawBM9))
+sceBM10.raw <- SingleCellExperiment(list(counts = rawBM10))
+
+#Removing old
+rm(filtBM3, filtBM4, filtBM5, filtBM7A, filtBM7B, filtBM8, filtBM9, filtBM10, filtPT3A, filtPT3B, filtPT4, filtPT5, filtPT7, filtPT8, filtPT9, filtPT10, rawBM3, rawBM4, rawBM5, rawBM7A, rawBM7B, rawBM8, rawBM9, rawBM10, rawPT3A, rawPT3B, rawPT4, rawPT5, rawPT7, rawPT8, rawPT9, rawPT10)
+
+#Running DecontX
+sceBM3.result <- decontX(sceBM3.filt, background = sceBM3.raw)
+sceBM4.result <- decontX(sceBM4.filt, background = sceBM4.raw)
+sceBM5.result <- decontX(sceBM5.filt, background = sceBM5.raw)
+sceBM7A.result <- decontX(sceBM7A.filt, background = sceBM7A.raw)
+sceBM7B.result <- decontX(sceBM7B.filt, background = sceBM7B.raw)
+sceBM8.result <- decontX(sceBM8.filt, background = sceBM8.raw)
+sceBM9.result <- decontX(sceBM9.filt, background = sceBM9.raw)
+sceBM10.result <- decontX(sceBM10.filt, background = sceBM10.raw)
+
+scePT3A.result <- decontX(scePT3A.filt, background = scePT3A.raw)
+scePT3B.result <- decontX(scePT3B.filt, background = scePT3B.raw)
+scePT4.result <- decontX(scePT4.filt, background = scePT4.raw)
+scePT5.result <- decontX(scePT5.filt, background = scePT5.raw)
+scePT7.result <- decontX(scePT7.filt, background = scePT7.raw)
+scePT8.result <- decontX(scePT8.filt, background = scePT8.raw)
+scePT9.result <- decontX(scePT9.filt, background = scePT9.raw)
+scePT10.result <- decontX(scePT10.filt, background = scePT10.raw)
+
+options(Seurat.object.assay.calcn = TRUE)
+
+#Adding filtered matrix to SeuratObjects
+serPT3A[["RNA"]]$counts <- round(decontXcounts(scePT3A.result))
+serPT3B[["RNA"]]$counts <- round(decontXcounts(scePT3B.result))
+serPT4[["RNA"]]$counts <- round(decontXcounts(scePT4.result))
+serPT5[["RNA"]]$counts <- round(decontXcounts(scePT5.result))
+serPT7[["RNA"]]$counts <- round(decontXcounts(scePT7.result))
+serPT8[["RNA"]]$counts <- round(decontXcounts(scePT8.result))
+serPT9[["RNA"]]$counts <- round(decontXcounts(scePT9.result))
+serPT10[["RNA"]]$counts <- round(decontXcounts(scePT10.result))
+
+serBM3[["RNA"]]$counts <- round(decontXcounts(sceBM3.result))
+serBM4[["RNA"]]$counts <- round(decontXcounts(sceBM4.result))
+serBM5[["RNA"]]$counts <- round(decontXcounts(sceBM5.result))
+serBM7A[["RNA"]]$counts <- round(decontXcounts(sceBM7A.result))
+serBM7B[["RNA"]]$counts <- round(decontXcounts(sceBM7B.result))
+serBM8[["RNA"]]$counts <- round(decontXcounts(sceBM8.result))
+serBM9[["RNA"]]$counts <- round(decontXcounts(sceBM9.result))
+serBM10[["RNA"]]$counts <- round(decontXcounts(sceBM10.result))
+
+#Removing extra objects
+rm(sceBM3.filt, sceBM3.raw, sceBM3.result, sceBM4.filt, sceBM4.raw, sceBM4.result, sceBM5.filt, sceBM5.raw, sceBM5.result, sceBM7A.filt, sceBM7A.raw, sceBM7A.result, sceBM7B.filt, sceBM7B.raw, sceBM7B.result, sceBM8.filt, sceBM8.raw, sceBM8.result, sceBM9.filt, sceBM9.raw, sceBM9.result, sceBM10.filt, sceBM10.raw, sceBM10.result, scePT3A.filt, scePT3A.raw, scePT3A.result, scePT3B.filt, scePT3B.raw, scePT3B.result, scePT4.filt, scePT4.raw, scePT4.result, scePT5.filt, scePT5.raw, scePT5.result, scePT7.filt, scePT7.raw, scePT7.result, scePT8.filt, scePT8.raw, scePT8.result, scePT9.filt, scePT9.raw, scePT9.result, scePT10.filt, scePT10.raw, scePT10.result)
+gc()
+```
+
+```{r adding metadata}
+#Adding metadata
+serPT3A$PDX <- "LU-NB-1"
+serPT3B$PDX <- "LU-NB-1"
+serPT4$PDX <- "LU-NB-2"
+serPT5$PDX <- "LU-NB-2"
+serPT7$PDX <- "LU-NB-2"
+serPT8$PDX <- "LU-NB-3"
+serPT9$PDX <- "LU-NB-3"
+serPT10$PDX <- "LU-NB-3"
+serBM3$PDX <- "LU-NB-1"
+serBM4$PDX <- "LU-NB-2"
+serBM5$PDX <- "LU-NB-2"
+serBM7A$PDX <- "LU-NB-2"
+serBM7B$PDX <- "LU-NB-2"
+serBM8$PDX <- "LU-NB-3"
+serBM9$PDX <- "LU-NB-3"
+serBM10$PDX <- "LU-NB-3"
+
+serPT3A$type <- "PT"
+serPT3B$type <- "PT"
+serPT4$type <- "PT"
+serPT5$type <- "PT"
+serPT7$type <- "PT"
+serPT8$type <- "PT"
+serPT9$type <- "PT"
+serPT10$type <- "PT"
+serBM3$type <- "BM"
+serBM4$type <- "BM"
+serBM5$type <- "BM"
+serBM7A$type <- "BM"
+serBM7B$type <- "BM"
+serBM8$type <- "BM"
+serBM9$type <- "BM"
+serBM10$type <- "BM"
+
+serPT3A$mouse <- "3"
+serPT3B$mouse <- "3"
+serPT4$mouse <- "4"
+serPT5$mouse <- "5"
+serPT7$mouse <- "7"
+serPT8$mouse <- "8"
+serPT9$mouse <- "9"
+serPT10$mouse <- "10"
+serBM3$mouse <- "3"
+serBM4$mouse <- "4"
+serBM5$mouse <- "5"
+serBM7A$mouse <- "7"
+serBM7B$mouse <- "7"
+serBM8$mouse <- "8"
+serBM9$mouse <- "9"
+serBM10$mouse <- "10"
+```
+
+```{r merging and checking size}
+#Merging
+serAll <- merge(serBM3, c(serBM4, serBM5, serBM7A, serBM7B, serBM8, serBM9, serBM10, serPT3A, serPT3B, serPT4, serPT5, serPT7, serPT8, serPT9, serPT10), add.cell.ids = c("BM3", "BM4", "BM5", "BM7A", "BM7B", "BM8", "BM9", "BM10", "PT3A", "PT3B", "PT4", "PT5", "PT7", "PT8", "PT9", "PT10"))
+serAll <- JoinLayers(serAll)
+
+#Removing objects
+rm(serBM3, serBM4, serBM5, serBM7A, serBM7B, serBM8, serBM9, serBM10, serPT3A, serPT3B, serPT4, serPT5, serPT7, serPT8, serPT9, serPT10)
+gc()
+
+saveRDS(serAll, file = "SeuratObject_serAllBM.rds")
+serAll <- readRDS("SeuratObject_serAllBM.rds")
+
+#Size of dataset
+dim(serAll)
+table(serAll$type)
+table(serAll$PDX)
+table(serAll$orig.ident)
+```
+
+```{r filtering after DecontX}
+##Remove NA's introduced in decontX. 
+countMatrix <- GetAssayData(serAll, assay = "RNA", layer = "counts")
+countMatrix[is.na(countMatrix)] <- 0
+filteredData <- SetAssayData(serAll, assay = "RNA", layer = "counts", new.data = countMatrix)
+
+#Remove cells with no expressed genes (the expression was removed in decontX as cells were decontamination)
+filteredData <- subset(filteredData, nFeature_RNA > 0)
+
+rm(serPT, sharedGenes, countMatrix)
+gc()
+```
+
+```{r calculating QC metrics}
+#Calculating Mitochondrial, Ribosomal, Hemoglobin, Platelate markers
+filteredData <- PercentageFeatureSet(filteredData, pattern = "^MT-", col.name = "percent_mito")
+filteredData <- PercentageFeatureSet(filteredData, "^RP[SL]", col.name = "percent_ribo")
+filteredData <- PercentageFeatureSet(filteredData, "^HB[^(P|E|S)]", col.name = "percent_hb")
+filteredData <- PercentageFeatureSet(filteredData, "PECAM1|PF4", col.name = "percent_plat")
+```
+
+```{r Filtering on QC metrics}
+#Filter out cells and genes with low expression
+selectCell <- WhichCells(filteredData, expression = nFeature_RNA > 100)
+selectFeat <- rownames(filteredData)[Matrix::rowSums(filteredData[["RNA"]]$counts) > 10]
+filteredData <- subset(filteredData, features = selectFeat, cells = selectCell)
+
+#Filter out cells with high mitocondrial and low ribosomal expression
+filteredData <- subset(filteredData, percent_mito < 20 & percent_ribo > 5)
+
+# Filter Mitochondrial, Ribosomal and Hemoglobin genes
+filteredData <- filteredData[!grepl("^MT-", rownames(filteredData)), ]
+filteredData <- filteredData[!grepl("^RP[SL]", rownames(filteredData)), ]
+filteredData <- filteredData[!grepl("^HB[^(P|E|S)]", rownames(filteredData)), ]
+```
+
+```{r Calculating and removing doublets}
+#Function to prepare each sample and calculate doublets from predicted multiplet rate
+run_doubletfinder_custom <- function(seu_sample_subset, multiplet_rate = NULL){
+  # for debug
+  #seu_sample_subset <- samp_split[[1]]
+  # Print sample number
+  print(paste0("Sample ", unique(seu_sample_subset[['orig.ident']]), '...........')) 
+  
+  #Manually setting predicted doublet rate based on recovered cells per batch
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_3_JEPDX1_7A'){
+    multiplet_rate <- 0.023
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_3_JEPDX1_7B'){
+    multiplet_rate <- 0.008
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_4_JEPDX2_5'){
+    multiplet_rate <- 0.023
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_5_CHPDX2_5'){
+    multiplet_rate <- 0.076
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_7_CHPDX2_2'){
+    multiplet_rate <- 0.031
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_8_JEPDX3_5'){
+    multiplet_rate <- 0.039
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_9_CHPDX3_3'){
+    multiplet_rate <- 0.092
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'PT_10_CHPDX3_5'){
+    multiplet_rate <- 0.076
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_3_JEPDX1_7'){
+    multiplet_rate <- 0.002
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_4_JEPDX2_5'){
+    multiplet_rate <- 0.002
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_5_CHPDX2_5'){
+    multiplet_rate <- 0.004
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_7_CHPDX2_2A'){
+    multiplet_rate <- 0.001
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_7_CHPDX2_2B'){
+    multiplet_rate <- 0.002
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_8_JEPDX3_5'){
+    multiplet_rate <- 0.001
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_9_CHPDX3_3'){
+    multiplet_rate <- 0.012
+  }
+  if(unique(seu_sample_subset[['orig.ident']]) == 'BM_10_CHPDX3_5'){
+    multiplet_rate <- 0.002
+  }
+  
+  print("111111")
+  
+  # Pre-process seurat object with standard seurat workflow --- 
+  sample <- NormalizeData(seu_sample_subset, verbose = FALSE)
+  sample <- FindVariableFeatures(sample, verbose = FALSE)
+  sample <- ScaleData(sample, verbose = FALSE)
+  
+  npcs_use <- min(30,
+                ncol(sample) - 1,
+                length(VariableFeatures(sample)) - 1)
+  sample <- RunPCA(sample, npcs = npcs_use, verbose = FALSE)
+  
+  print("22222222")
+  
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  percent_stdv <- (stdv/sum(stdv)) * 100
+  cumulative <- cumsum(percent_stdv)
+  co1 <- which(cumulative > 90 & percent_stdv < 5)[1] 
+  
+  diffs <- percent_stdv[1:(length(percent_stdv)-1)] -
+         percent_stdv[2:length(percent_stdv)]
+  co2 <- sort(which(diffs > 0.1), decreasing = TRUE)[1] + 1
+  min_pc <- min(co1, co2, na.rm = TRUE)
+  if (is.infinite(min_pc) || is.na(min_pc)) {
+    min_pc <- 10
+  }
+  
+  print("3333333")
+  print(min_pc)
+  n_neighbors_use <- min(30, ncol(sample) - 1)
+  
+  # Finish pre-processing with min_pc
+  sample <- RunUMAP(sample, dims = 1:min_pc, n.neighbors = n_neighbors_use, verbose = FALSE)
+  sample <- FindNeighbors(object = sample, dims = 1:min_pc, verbose = FALSE)              
+  sample <- FindClusters(object = sample, resolution = 0.1, verbose = FALSE)
+  
+  print("4444444")
+  # pK identification (no ground-truth) 
+  #introduces artificial doublets in varying props, merges with real data set and 
+  # preprocesses the data + calculates the prop of artficial neighrest neighbours, 
+  # provides a list of the proportion of artificial nearest neighbours for varying
+  # combinations of the pN and pK
+  sweep_list <- paramSweep(sample, PCs = 1:min_pc, sct = FALSE)   
+  sweep_stats <- summarizeSweep(sweep_list)
+  bcmvn <- find.pK(sweep_stats) # computes a metric to find the optimal pK value (max mean variance normalised by modality coefficient)
+  # Optimal pK is the max of the bimodality coefficient (BCmvn) distribution
+  optimal.pk <- bcmvn %>% 
+    dplyr::filter(BCmetric == max(BCmetric)) %>%
+    dplyr::select(pK)
+  optimal.pk <- as.numeric(as.character(optimal.pk[[1]]))
+  
+  print("555555")
+  
+  ## Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters # use the clusters as the user-defined cell types
+  homotypic.prop <- modelHomotypic(annotations) # get proportions of homotypic doublets
+  
+  #multiply by number of cells to get the number of expected multiplets
+  nExp.poi <- round(multiplet_rate * nrow(sample@meta.data)) 
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop)) # expected number of doublets
+  
+  # run DoubletFinder
+  sample <- doubletFinder(seu = sample, 
+                          PCs = 1:min_pc, 
+                          pK = optimal.pk, #the neighborhood size used to compute the number of artificial nearest neighbours
+                          nExp = nExp.poi.adj) #number of expected real doublets
+  
+  # change name of metadata column with Singlet/Doublet information
+  colnames(sample@meta.data)[grepl('DF.classifications.*', colnames(sample@meta.data))] <- "doublet_finder"
+  
+  #DimPlot(sample, group.by = "doublet_finder")
+  
+  #get the metadata column with singlet, doublet info
+  double_finder_res <- sample@meta.data['doublet_finder'] 
+  #add the cell IDs as new column to be able to merge correctly
+  double_finder_res <- rownames_to_column(double_finder_res, "row_names") 
+  return(double_finder_res)
+}
+
+not_doubletfinder <- function(sample) {
+  sample$doublet_finder <- "Singlet"
+  double_finder_res <- sample@meta.data['doublet_finder'] 
+  #add the cell IDs as new column to be able to merge correctly
+  double_finder_res <- rownames_to_column(double_finder_res, "row_names") 
+  return(double_finder_res)
+}
+
+data.split <- SplitObject(filteredData, split.by = "orig.ident")
+data.split <- lapply(data.split, function(x) {
+  if(ncol(x) >= 50){run_doubletfinder_custom(x)} else {not_doubletfinder(x)}})
+
+sglt_dblt_metadata <- data.frame(bind_rows(data.split)) # merge to a single dataframe
+rownames(sglt_dblt_metadata) <- sglt_dblt_metadata$row_names # assign cell IDs to row names to ensure match
+sglt_dblt_metadata$row_names <- NULL
+head(sglt_dblt_metadata)
+filteredData <- AddMetaData(filteredData, sglt_dblt_metadata, col.name = 'doublet_finder')
+
+rm(data.split, feats, sglt_dblt_metadata)
+
+#Removing doublets
+filteredData <- filteredData[, filteredData@meta.data[, "doublet_finder"] == "Singlet"]
+
+saveRDS(filteredData, file = "SeuratObject_filteredDataBM.rds")
+filteredData <- readRDS("SeuratObject_filteredDataBM.rds")
+```
+
+
+```{r Processing without SCT}
+processedData <- filteredData
+processedData[["RNA"]] <- split(processedData[["RNA"]], f = filteredData$orig.ident)
+
+processedData <- NormalizeData(processedData, verbose = FALSE)
+processedData <- FindVariableFeatures(processedData, verbose = FALSE)
+processedData <- ScaleData(processedData, verbose = FALSE)
+processedData <- RunPCA(processedData, verbose = FALSE)
+
+#Integrating
+integratedData <- IntegrateLayers(object = processedData, method = HarmonyIntegration, group.by.vars = "orig.ident", assay.use = "RNA", orig.reduction = "pca", new.reduction = "harmony", verbose = FALSE)
+integratedData[["RNA"]] <- JoinLayers(integratedData[["RNA"]])
+
+saveRDS(integratedData, file = "SeuratObject_integratedDataBM.rds")
+integratedData <- readRDS("SeuratObject_integratedDataBM.rds")
+```
+
+
+```{r SCTransform, PCA and Harmony integration}
+##Running SCTransform on each sample
+#objectList <- SplitObject(filteredData, split.by = "orig.ident")
+#objectList <- lapply(objectList, function(serObj){
+#  serObjSCT <- SCTransform(serObj, return.only.var.genes = FALSE, verbose = FALSE)
+#  #serObjSCT <- RunPCA(serObjSCT, assay = "SCT", verbose = FALSE)
+#  serObjSCT
+#})
+
+##Merging
+#features <- SelectIntegrationFeatures(object.list = objectList, nfeatures = 3000)
+#processedData <- merge(objectList[[1]], y = objectList[-1])
+#VariableFeatures(processedData) <- features
+
+##PCA and Integrating
+#processedData <- RunPCA(processedData, assay = "SCT", verbose = FALSE)
+#integratedData <- harmony::RunHarmony(object = processedData, group.by.vars = "orig.ident", reduction = "pca", #assay.use = "SCT", reduction.save = "harmony", project.dim = FALSE)
+#integratedData[["RNA"]] <- JoinLayers(integratedData[["RNA"]])
+
+#saveRDS(integratedData, file = "SeuratObject_integratedDataBM.rds")
+#integratedData <- readRDS("SeuratObject_integratedDataBM.rds")
+```
+
+
+```{r Clustering och UMAP}
+#UMAP on integrated data
+BM.umap <- RunUMAP(integratedData, dims = 1:15, reduction = "harmony", reduction.name = "umap_harmony", verbose = FALSE, assay = "RNA")
+
+#Clustering
+BM.umap <- FindNeighbors(BM.umap, dims = 1:15, verbose = FALSE, reduction = "harmony")
+BM.umap <- FindClusters(BM.umap, resolution = 0.20, verbose = FALSE)
+```
+
+```{r Quick visualization}
+#Checking UMAP
+DimPlot(BM.umap, reduction = "umap_harmony", group.by = "type")
+DimPlot(BM.umap, reduction = "umap_harmony", group.by = "type", split.by = "PDX")
+DimPlot(BM.umap, reduction = "umap_harmony", group.by = "seurat_clusters")
+DimPlot(BM.umap, reduction = "umap_harmony", group.by = "seurat_clusters", split.by = "PDX")
+```
+
+```{r ADRN/MES identity}
+#Same ADRN/MES genes
+adrn.genes2 <- c("TH", "DBH", "CHGA", "PHOX2B", "GATA3", "MYCN", "PHOX2A")
+mes.genes2 <- c("CD44", "FN1", "COL1A1", "RUNX2", "WWTR1", "IRF1", "SNAI2", "VIM")
+
+BM.umap <- AddModuleScore(BM.umap, features = list(adrn.genes2), name = "ADRN")
+BM.umap <- AddModuleScore(BM.umap, features = list(mes.genes2), name = "MES")
+
+#For interest
+FeaturePlot(BM.umap, features = c("ADRN1", "MES1"), min.cutoff = "q10", max.cutoff = "q90", blend = TRUE, cols = c("lightgrey", "orange", "navy"), combine = FALSE)
+
+VlnPlot(BM.umap, features = c("ADRN1", "MES1"), group.by = "seurat_clusters", pt.size = 0, cols = clustCol[1:7])
+```
+
+```{r Pseudobulk and DESeq2}
+#Creating Single Cell Experiment with metadata
+BM.sce <- as.SingleCellExperiment(BM.umap)
+BM.sce$model_type <- BM.sce$orig.ident
+BM.sce$group_id <- BM.sce$type
+BM.sce$sample_id <- BM.sce$PDX
+BM.sce$cluster_id <- "NB"
+
+#Pseudobulking based on mouse model and location
+pbulked <- aggregateData(BM.sce, assay = "counts", by = c("cluster_id", "model_type"), fun = "sum")
+counts <- assay(pbulked, "NB")
+colData <- as.data.frame(colData(pbulked))
+
+#Making sure Metadata is alright
+colData$model_id <- colData$mouse
+colData$model_id <- factor(colData$model_id)
+colData$group_id <- factor(colData$group_id)
+
+colData(pbulked)$model_id <- colData$model_id
+colData(pbulked)$group_id <- colData$group_id
+
+colData(pbulked)$model_id <- factor(colData(pbulked)$model_id)
+colData(pbulked)$group_id <- factor(colData(pbulked)$group_id)
+
+#Creating DeseqObject with mouse model as factor, and testing for location differences
+DeseqObjBM <- DESeqDataSetFromMatrix(countData = assay(pbulked), colData = colData(pbulked), design = ~ model_id + group_id)
+
+#Getting results
+DeseqObjBM <- DESeq(DeseqObjBM)
+DeseqResBM <- results(DeseqObjBM, contrast = c("group_id", "BM", "PT"))
+DeseqResBM <- DeseqResBM[order(DeseqResBM$padj),]
+DeseqResBM$gene <- rownames(DeseqResBM)
+
+saveRDS(DeseqResBM, file = "DeseqResBM_BMvsPT.rds")
+DeseqResBM <- readRDS("DeseqResBM_BMvsPT.rds")
+
+rm(BM.sce, pbulked, colData, counts)
+gc()
+```
+
+```{r Isolating significant genes}
+#Selecting significant genes
+upGenesBM <- DeseqResBM$gene[which(DeseqResBM$padj < 0.01 & DeseqResBM$log2FoldChange > 0.5)]
+downGenesBM <- DeseqResBM$gene[which(DeseqResBM$padj < 0.01 & DeseqResBM$log2FoldChange < -0.5)]
+signGenesBM <- c(upGenesBM, downGenesBM)
+
+saveRDS(upGenesBM, file = "List_upGenesBM_BM-PT.rds")
+saveRDS(downGenesBM, file = "List_downGenesBM_BM-PT.rds")
+saveRDS(signGenesBM, file = "List_signGenesBM_BM-PT.rds")
+
+upGenesBM <- readRDS("List_upGenesBM_BM-PT.rds")
+downGenesBM <- readRDS("List_downGenesBM_BM-PT.rds")
+signGenesBM <- readRDS("List_signGenesBM_BM-PT.rds")
+```
+
+```{r Volcano plot of results}
+#Creating dataframe with gene, fold change and adjusted p-value
+Volcano.BM <- data.frame(gene = rownames(DeseqResBM), log2FoldChange = DeseqResBM$log2FoldChange, padj = DeseqResBM$padj, significance = ifelse(DeseqResBM$log2FoldChange > 0.5 & DeseqResBM$padj < 0.01, "Upregulated", ifelse(DeseqResBM$log2FoldChange < -0.5 & DeseqResBM$padj < 0.01, "Downregulated", "Not significant")))
+
+#selecting genes to label
+top_genesBM <- Volcano.BM %>%
+  arrange(padj) %>%
+  dplyr::slice(1:20)
+
+#Plotting
+ggplot(Volcano.BM, aes(x = log2FoldChange, y = -log10(padj), color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Upregulated" = "#E6550D")) +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = top_genesBM, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "PT-BM: Differentially Expressed Genes",
+       x = "Average log2 Fold Change",
+       y = "-log10 Adjusted P-value")
+
+```
+
+```{r Calculating BM score, and cutoff}
+DefaultAssay(BM.umap) <- "RNA"
+BM.umap <- NormalizeData(BM.umap, verbose = FALSE)
+
+#Calculate score for each cell
+BM.umap <- AddModuleScore(BM.umap, features = list(upGenesBM), name = "BMScore")
+BM.umap <- AddModuleScore(BM.umap, features = list(downGenesBM), name = "PTScore")
+
+saveRDS(BM.umap, file = "SerObj_BM.umap_withBMScore.rds")
+BM.umap <- readRDS("SerObj_BM.umap_withBMScore.rds")
+```
+
+```{r Selecting BM+ cells in PT}
+#Selecting cutoff at -1SD from mean
+onlyBM <- subset(BM.umap, type == "BM")
+BMScoreMean <- mean(onlyBM$BMScore1)
+BMScoreSD <- sd(onlyBM$BMScore1)
+BMcutoff <- BMScoreMean - BMScoreSD
+
+#Selecting cells
+BMcells <- WhichCells(BM.umap, expression = BMScore1 > BMcutoff)
+saveRDS(BMcells, file = "List_BMposLMcells.rds")
+BMcells <- readRDS("List_BMposLMcells.rds")
+```
+
+```{r Visualize scores in BM and PT}
+#Not convinsing results
+VlnPlot(BM.umap, features = "BMScore1", group.by = "type")
+```

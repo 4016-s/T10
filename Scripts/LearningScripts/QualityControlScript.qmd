@@ -1,0 +1,171 @@
+---
+title: "QualityControlScript"
+execute: 
+  message: false
+  warning: false
+format: 
+  html:
+    code-fold: true
+    
+---
+
+```{r}
+
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(Matrix)
+library(ggplot2)
+library(hdf5r)
+
+#Setting working directory
+setwd("~/T10")
+
+```
+## Header
+
+```{r}
+#Setting working directory
+setwd("~/T10")
+
+#Importing data from files
+rawData1 <- Read10X_h5(filename ="data/1_JEPDX1_6/sample_filtered_feature_bc_matrix.h5")
+rawData2 <- Read10X_h5(filename ="data/2_CHPDX1_5/sample_filtered_feature_bc_matrix.h5")
+rawData3 <- Read10X_h5(filename ="data/3_JEPDX2_5/sample_filtered_feature_bc_matrix.h5")
+rawData4 <- Read10X_h5(filename ="data/4_CHPDX2_5/sample_filtered_feature_bc_matrix.h5")
+rawData5 <- Read10X_h5(filename ="data/5_CHPDX2_7/sample_filtered_feature_bc_matrix.h5")
+rawData6 <- Read10X_h5(filename ="data/6_JEPDX3_5/sample_filtered_feature_bc_matrix.h5")
+rawData7 <- Read10X_h5(filename ="data/7_CHPDX3_3/sample_filtered_feature_bc_matrix.h5")
+rawData8 <- Read10X_h5(filename ="data/8_CHPDX3_5/sample_filtered_feature_bc_matrix.h5")
+
+#Creating SEURAT objects
+serData1 <- CreateSeuratObject(rawData1, project = "Mouse1")
+serData2 <- CreateSeuratObject(rawData2, project = "Mouse2")
+serData3 <- CreateSeuratObject(rawData3, project = "Mouse3")
+serData4 <- CreateSeuratObject(rawData4, project = "Mouse4")
+serData5 <- CreateSeuratObject(rawData5, project = "Mouse5")
+serData6 <- CreateSeuratObject(rawData6, project = "Mouse6")
+serData7 <- CreateSeuratObject(rawData7, project = "Mouse7")
+serData8 <- CreateSeuratObject(rawData8, project = "Mouse8")
+
+#Adding patient information
+serData1$type <- "patientSample1"
+serData2$type <- "patientSample1"
+serData3$type <- "patientSample2"
+serData4$type <- "patientSample2"
+serData5$type <- "patientSample2"
+serData6$type <- "patientSample3"
+serData7$type <- "patientSample3"
+serData8$type <- "patientSample3"
+
+#Merging into 1 object
+allData <- merge(serData1, c(serData2, serData3, serData4, serData5, serData6, serData7, serData8), add.cell.ids = c("mouse1", "mouse2", "mouse3", "mouse4", "mouse5", "mouse6", "mouse7", "mouse8"))
+allData <- JoinLayers(allData)
+
+#Remove unecessary objects
+rm(rawData1, rawData2, rawData3, rawData4, rawData5, rawData6, rawData7, rawData8, serData1, serData2, serData3, serData4, serData5, serData6, serData7, serData8)
+gc()
+
+#Showing Mitochondrial, Ribosomal, Hemoglobin, Platelate markers
+allData <- PercentageFeatureSet(allData, "^MT-", col.name = "percent_mito")
+allData <- PercentageFeatureSet(allData, "^RP[SL]", col.name = "percent_ribo")
+allData <- PercentageFeatureSet(allData, "^HB[^(P|E|S)]", col.name = "percent_hb")
+allData <- PercentageFeatureSet(allData, "PECAM1|PF4", col.name = "percent_plat")
+
+#Creating violin plots of QC variables
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb", "percent_plat")
+VlnPlot(allData, group.by = "orig.ident", split.by = "type", features = feats, pt.size = 0.1, ncol = 3)
+
+```
+
+
+
+```{r}
+
+#Filter out cells and genes with low expression
+selectCell <- WhichCells(allData, expression = nFeature_RNA > 100)
+selectFeat <- rownames(allData)[Matrix::rowSums(allData[["RNA"]]$counts) > 2]
+data.filt <- subset(allData, features = selectFeat, cells = selectCell)
+dim(data.filt)
+table(data.filt$orig.ident)
+
+#Show most expressed genes
+C <- data.filt[["RNA"]]$counts
+C@x <- C@x / rep.int(colSums(C), diff(C@p)) * 100
+most_expressed <- order(Matrix::rowSums(C), decreasing = T)[20:1]
+boxplot(as.matrix(t(C[most_expressed, ])),
+        cex = 0.1, las = 1, xlab = "Percent counts per cell",
+        col = (scales::hue_pal())(20)[20:1], horizontal = TRUE
+)
+
+#Filter out cells with high mitocondrial and low ribosomal expression
+data.filt <- subset(data.filt, percent_mito < 30 & percent_ribo > 5)
+dim(data.filt)
+table(data.filt$orig.ident)
+
+#New violin plot of QC variables
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb")
+VlnPlot(data.filt, group.by = "orig.ident", features = feats, pt.size = 0.1, ncol = 3) + NoLegend()
+
+# Filter Mitocondrial, Ribosomal and Hemoglobin genes
+data.filt <- data.filt[!grepl("^MT-", rownames(data.filt)), ]
+data.filt <- data.filt[ ! grepl("^RP[SL]", rownames(data.filt)), ]
+data.filt <- data.filt[!grepl("^HB[^(P|E|S)]", rownames(data.filt)), ]
+dim(data.filt)
+
+#Run SCTransform
+data.filt[["RNA"]] <- split(data.filt[["RNA"]], f = data.filt$orig.ident)
+#data.filt <- SCTransform(data.filt, vars.to.regress = c("percent_mito", "nFeature_RNA"), verbose = FALSE)
+data.filt <- NormalizeData(data.filt)
+data.filt <- FindVariableFeatures(data.filt)
+data.filt <- ScaleData(data.filt)
+data.filt <- RunPCA(data.filt, verbose = FALSE)
+
+#Printing components of PCA
+wrap_plots(
+  DimPlot(data.filt, reduction = "pca", group.by = "orig.ident", dims = 1:2),
+  DimPlot(data.filt, reduction = "pca", group.by = "orig.ident", dims = 3:4),
+  DimPlot(data.filt, reduction = "pca", group.by = "orig.ident", dims = 5:6),
+  ncol = 3
+) + plot_layout(guides = "collect")
+
+#What genes contribute to PCs
+VizDimLoadings(data.filt, dims = 1:5, reduction = "pca", ncol = 2, balanced = T)
+
+#tSNE to visualize bath effect
+data.filt <- RunTSNE(
+  data.filt,
+  reduction = "pca", dims = 1:15,
+  perplexity = 30,
+  max_iter = 1000,
+  theta = 0.5,
+  eta = 200,
+  num_threads = 0
+)
+DimPlot(data.filt, reduction = "tsne", group.by = "orig.ident")
+
+#UMAP
+data.filt <- RunUMAP(
+  data.filt,
+  reduction = "pca",
+  dims = 1:15,
+  n.components = 2,
+  n.neighbors = 30,
+  n.epochs = 200,
+  min.dist = 0.3,
+  learning.rate = 1,
+  spread = 1
+)
+DimPlot(data.filt, reduction = "umap", group.by = "orig.ident")
+
+# integrate datasets
+#data.filt[["RNA"]] <- split(data.filt[["RNA"]], f = data.filt$orig.ident)
+data.filt <- IntegrateLayers(object = data.filt, method = HarmonyIntegration, orig.reduction = "pca", new.reduction = "harmony",
+                        verbose = FALSE)
+
+# re-join layers after integration
+data.filt[["RNA"]] <- JoinLayers(data.filt[["RNA"]])
+
+data.filt <- RunUMAP(data.filt, dims = 1:30, reduction = "harmony", reduction.name = "umap_harmony")
+DimPlot(data.filt, reduction = "umap_harmony", group.by = "orig.ident") + NoAxes() + ggtitle("Harmony UMAP")
+```

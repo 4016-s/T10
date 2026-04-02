@@ -1,0 +1,2698 @@
+---
+title: "PTvsLM"
+execute: 
+  message: false
+  warning: false
+format: 
+  html:
+    code-fold: true
+    
+---
+
+```{r Loading packages}
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(Matrix)
+library(ggplot2)
+library(hdf5r)
+library(SeuratData)
+library(ggrepel)
+library(tidyverse)
+library(decontX)
+library(SingleCellExperiment)
+library(pheatmap)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+library(clusterProfiler)
+library(enrichplot)
+library(DOSE)
+library(enrichplot)
+library(MAST)
+library(lme4)
+library(DoMultiBarHeatmap)
+library(RColorBrewer)
+library(colorRamp2)
+library(scCustomize)
+library(DoubletFinder)
+library(dendextend)
+library(ggcorrplot)
+library(ggtext)
+library(grid)
+library(ComplexHeatmap)
+library(DESeq2)
+library(muscat)
+library(harmony)
+library(cowplot)
+```
+## Importing and orginising data
+
+```{r Loading data, DecontX, adding metaData}
+#Setting working directory
+setwd("~/T10")
+
+#Importing data from files
+#LM files
+filtLM1 <- Read10X_h5(filename ="data/LM/PDX1/1_JEPDX1_6/sample_filtered_feature_bc_matrix.h5")
+filtLM2 <- Read10X_h5(filename ="data/LM/PDX1/2_CHPDX1_5/sample_filtered_feature_bc_matrix.h5")
+filtLM4 <- Read10X_h5(filename ="data/LM/PDX2/4_JEPDX2_5/sample_filtered_feature_bc_matrix.h5")
+filtLM5 <- Read10X_h5(filename ="data/LM/PDX2/5_CHPDX2_5/sample_filtered_feature_bc_matrix.h5")
+filtLM6 <- Read10X_h5(filename ="data/LM/PDX2/6_CHPDX2_7/sample_filtered_feature_bc_matrix.h5")
+filtLM8 <- Read10X_h5(filename ="data/LM/PDX3/8_JEPDX3_5/sample_filtered_feature_bc_matrix.h5")
+filtLM9 <- Read10X_h5(filename ="data/LM/PDX3/9_CHPDX3_3/sample_filtered_feature_bc_matrix.h5")
+filtLM10 <- Read10X_h5(filename ="data/LM/PDX3/10_CHPDX3_5/sample_filtered_feature_bc_matrix.h5")
+
+#PT files
+filtPT3A <- Read10X("data/PT/PDX1/3_JEPDX1_7/#A (17th February)/filtered_feature_bc_matrix/")
+filtPT3B <- Read10X("data/PT/PDX1/3_JEPDX1_7/#B (7th March)/filtered_feature_bc_matrix/")
+filtPT4 <- Read10X("data/PT/PDX2/4_JEPDX2_5/filtered_feature_bc_matrix/")
+filtPT5 <- Read10X_h5(filename ="data/PT/PDX2/5_CHPDX2_5/filtered_feature_bc_matrix.h5")
+filtPT7 <- Read10X_h5(filename ="data/PT/PDX2/7_CHPDX2_2/filtered_feature_bc_matrix.h5")
+filtPT8 <- Read10X_h5(filename ="data/PT/PDX3/8_JEPDX3_5/filtered_feature_bc_matrix.h5")
+filtPT9 <- Read10X_h5(filename ="data/PT/PDX3/9_CHPDX3_3/filtered_feature_bc_matrix.h5")
+filtPT10 <- Read10X_h5(filename ="data/PT/PDX3/10_CHPDX3_5/filtered_feature_bc_matrix.h5")
+
+#Creating SeuratObjects
+serLM1 <- CreateSeuratObject(filtLM1, project = "1_JEPDX1_6")
+serLM2 <- CreateSeuratObject(filtLM2, project = "2_CHPDX1_5")
+serLM4 <- CreateSeuratObject(filtLM4, project = "4_JEPDX2_5")
+serLM5 <- CreateSeuratObject(filtLM5, project = "5_CHPDX2_5")
+serLM6 <- CreateSeuratObject(filtLM6, project = "6_CHPDX2_7")
+serLM8 <- CreateSeuratObject(filtLM8, project = "8_JEPDX3_5")
+serLM9 <- CreateSeuratObject(filtLM9, project = "9_CHPDX3_3")
+serLM10 <- CreateSeuratObject(filtLM10, project = "10_CHPDX3_5")
+serPT3A <- CreateSeuratObject(filtPT3A, project = "3_JEPDX1_7A")
+serPT3B <- CreateSeuratObject(filtPT3B, project = "3_JEPDX1_7B")
+serPT4 <- CreateSeuratObject(filtPT4, project = "4_JEPDX2_5")
+serPT5 <- CreateSeuratObject(filtPT5, project = "5_CHPDX2_5")
+serPT7 <- CreateSeuratObject(filtPT7, project = "7_CHPDX2_2")
+serPT8 <- CreateSeuratObject(filtPT8, project = "8_JEPDX3_5")
+serPT9 <- CreateSeuratObject(filtPT9, project = "9_CHPDX3_3")
+serPT10 <- CreateSeuratObject(filtPT10, project = "10_CHPDX3_5")
+
+
+#Importing data from raw files
+#raw LM files
+rawLM1 <- Read10X_h5(filename ="data/LM/PDX1/1_JEPDX1_6/sample_raw_feature_bc_matrix.h5")
+rawLM2 <- Read10X_h5(filename ="data/LM/PDX1/2_CHPDX1_5/sample_raw_feature_bc_matrix.h5")
+rawLM4 <- Read10X_h5(filename ="data/LM/PDX2/4_JEPDX2_5/sample_raw_feature_bc_matrix.h5")
+rawLM5 <- Read10X_h5(filename ="data/LM/PDX2/5_CHPDX2_5/sample_raw_feature_bc_matrix.h5")
+rawLM6 <- Read10X_h5(filename ="data/LM/PDX2/6_CHPDX2_7/sample_raw_feature_bc_matrix.h5")
+rawLM8 <- Read10X_h5(filename ="data/LM/PDX3/8_JEPDX3_5/sample_raw_feature_bc_matrix.h5")
+rawLM9 <- Read10X_h5(filename ="data/LM/PDX3/9_CHPDX3_3/sample_raw_feature_bc_matrix.h5")
+rawLM10 <- Read10X_h5(filename ="data/LM/PDX3/10_CHPDX3_5/sample_raw_feature_bc_matrix.h5")
+
+#raw PT files
+rawPT3A <- Read10X("data/PT/PDX1/3_JEPDX1_7/#A (17th February)/raw_feature_bc_matrix/")
+rawPT3B <- Read10X("data/PT/PDX1/3_JEPDX1_7/#B (7th March)/raw_feature_bc_matrix/")
+rawPT4 <- Read10X("data/PT/PDX2/4_JEPDX2_5/raw_feature_bc_matrix/")
+rawPT5 <- Read10X_h5(filename ="data/PT/PDX2/5_CHPDX2_5/raw_feature_bc_matrix.h5")
+rawPT7 <- Read10X_h5(filename ="data/PT/PDX2/7_CHPDX2_2/raw_feature_bc_matrix.h5")
+rawPT8 <- Read10X_h5(filename ="data/PT/PDX3/8_JEPDX3_5/raw_feature_bc_matrix.h5")
+rawPT9 <- Read10X_h5(filename ="data/PT/PDX3/9_CHPDX3_3/raw_feature_bc_matrix.h5")
+rawPT10 <- Read10X_h5(filename ="data/PT/PDX3/10_CHPDX3_5/raw_feature_bc_matrix.h5")
+
+#skapar SingleCellExperiment för att kunna köra DecontX, ta bort ambient RNA
+sceLM1.filt <- SingleCellExperiment(list(counts = filtLM1))
+sceLM2.filt <- SingleCellExperiment(list(counts = filtLM2))
+sceLM4.filt <- SingleCellExperiment(list(counts = filtLM4))
+sceLM5.filt <- SingleCellExperiment(list(counts = filtLM5))
+sceLM6.filt <- SingleCellExperiment(list(counts = filtLM6))
+sceLM8.filt <- SingleCellExperiment(list(counts = filtLM8))
+sceLM9.filt <- SingleCellExperiment(list(counts = filtLM9))
+sceLM10.filt <- SingleCellExperiment(list(counts = filtLM10))
+sceLM1.raw <- SingleCellExperiment(list(counts = rawLM1))
+sceLM2.raw <- SingleCellExperiment(list(counts = rawLM2))
+sceLM4.raw <- SingleCellExperiment(list(counts = rawLM4))
+sceLM5.raw <- SingleCellExperiment(list(counts = rawLM5))
+sceLM6.raw <- SingleCellExperiment(list(counts = rawLM6))
+sceLM8.raw <- SingleCellExperiment(list(counts = rawLM8))
+sceLM9.raw <- SingleCellExperiment(list(counts = rawLM9))
+sceLM10.raw <- SingleCellExperiment(list(counts = rawLM10))
+#samma för PT
+scePT3A.filt <- SingleCellExperiment(list(counts = filtPT3A))
+scePT3B.filt <- SingleCellExperiment(list(counts = filtPT3B))
+scePT4.filt <- SingleCellExperiment(list(counts = filtPT4))
+scePT5.filt <- SingleCellExperiment(list(counts = filtPT5))
+scePT7.filt <- SingleCellExperiment(list(counts = filtPT7))
+scePT8.filt <- SingleCellExperiment(list(counts = filtPT8))
+scePT9.filt <- SingleCellExperiment(list(counts = filtPT9))
+scePT10.filt <- SingleCellExperiment(list(counts = filtPT10))
+scePT3A.raw <- SingleCellExperiment(list(counts = rawPT3A))
+scePT3B.raw <- SingleCellExperiment(list(counts = rawPT3B))
+scePT4.raw <- SingleCellExperiment(list(counts = rawPT4))
+scePT5.raw <- SingleCellExperiment(list(counts = rawPT5))
+scePT7.raw <- SingleCellExperiment(list(counts = rawPT7))
+scePT8.raw <- SingleCellExperiment(list(counts = rawPT8))
+scePT9.raw <- SingleCellExperiment(list(counts = rawPT9))
+scePT10.raw <- SingleCellExperiment(list(counts = rawPT10))
+
+rm(filtLM1, filtLM2, filtLM4, filtLM5, filtLM6, filtLM8, filtLM9, filtLM10, filtPT3A, filtPT3B, filtPT4, filtPT5, filtPT7, filtPT8, filtPT9, filtPT10, rawLM1, rawLM2, rawLM4, rawLM5, rawLM6, rawLM8, rawLM9, rawLM10, rawPT3A, rawPT3B, rawPT4, rawPT5, rawPT7, rawPT8, rawPT9, rawPT10)
+
+#Kör DecontX med raw_matrix som bakgrund
+sceLM1.result <- decontX(sceLM1.filt, background = sceLM1.raw)
+sceLM2.result <- decontX(sceLM2.filt, background = sceLM2.raw)
+sceLM4.result <- decontX(sceLM4.filt, background = sceLM4.raw)
+sceLM5.result <- decontX(sceLM5.filt, background = sceLM5.raw)
+sceLM6.result <- decontX(sceLM6.filt, background = sceLM6.raw)
+sceLM8.result <- decontX(sceLM8.filt, background = sceLM8.raw)
+sceLM9.result <- decontX(sceLM9.filt, background = sceLM9.raw)
+sceLM10.result <- decontX(sceLM10.filt, background = sceLM10.raw)
+scePT3A.result <- decontX(scePT3A.filt, background = scePT3A.raw)
+scePT3B.result <- decontX(scePT3B.filt, background = scePT3B.raw)
+scePT4.result <- decontX(scePT4.filt, background = scePT4.raw)
+scePT5.result <- decontX(scePT5.filt, background = scePT5.raw)
+scePT7.result <- decontX(scePT7.filt, background = scePT7.raw)
+scePT8.result <- decontX(scePT8.filt, background = scePT8.raw)
+scePT9.result <- decontX(scePT9.filt, background = scePT9.raw)
+scePT10.result <- decontX(scePT10.filt, background = scePT10.raw)
+
+options(Seurat.object.assay.calcn = TRUE)
+
+#Adding decontX corrected into the count matrix of the SeuratObjects
+serLM1[["RNA"]]$counts <- round(decontXcounts(sceLM1.result))
+serLM2[["RNA"]]$counts <- round(decontXcounts(sceLM2.result))
+serLM4[["RNA"]]$counts <- round(decontXcounts(sceLM4.result))
+serLM5[["RNA"]]$counts <- round(decontXcounts(sceLM5.result))
+serLM6[["RNA"]]$counts <- round(decontXcounts(sceLM6.result))
+serLM8[["RNA"]]$counts <- round(decontXcounts(sceLM8.result))
+serLM9[["RNA"]]$counts <- round(decontXcounts(sceLM9.result))
+serLM10[["RNA"]]$counts <- round(decontXcounts(sceLM10.result))
+
+serPT3A[["RNA"]]$counts <- round(decontXcounts(scePT3A.result))
+serPT3B[["RNA"]]$counts <- round(decontXcounts(scePT3B.result))
+serPT4[["RNA"]]$counts <- round(decontXcounts(scePT4.result))
+serPT5[["RNA"]]$counts <- round(decontXcounts(scePT5.result))
+serPT7[["RNA"]]$counts <- round(decontXcounts(scePT7.result))
+serPT8[["RNA"]]$counts <- round(decontXcounts(scePT8.result))
+serPT9[["RNA"]]$counts <- round(decontXcounts(scePT9.result))
+serPT10[["RNA"]]$counts <- round(decontXcounts(scePT10.result))
+
+rm(sceLM1.filt, sceLM1.raw, sceLM1.result, sceLM2.filt, sceLM2.raw, sceLM2.result, sceLM4.filt, sceLM4.raw, sceLM4.result, sceLM5.filt, sceLM5.raw, sceLM5.result, sceLM6.filt, sceLM6.raw, sceLM6.result, sceLM8.filt, sceLM8.raw, sceLM8.result, sceLM9.filt, sceLM9.raw, sceLM9.result, sceLM10.filt, sceLM10.raw, sceLM10.result, scePT3A.filt, scePT3A.raw, scePT3A.result, scePT3B.filt, scePT3B.raw, scePT3B.result, scePT4.filt, scePT4.raw, scePT4.result, scePT5.filt, scePT5.raw, scePT5.result, scePT7.filt, scePT7.raw, scePT7.result, scePT8.filt, scePT8.raw, scePT8.result, scePT9.filt, scePT9.raw, scePT9.result, scePT10.filt, scePT10.raw, scePT10.result)
+gc()
+
+#Addning information layers
+serLM1$PDX <- "LU-NB-1"
+serLM2$PDX <- "LU-NB-1"
+serLM4$PDX <- "LU-NB-2"
+serLM5$PDX <- "LU-NB-2"
+serLM6$PDX <- "LU-NB-2"
+serLM8$PDX <- "LU-NB-3"
+serLM9$PDX <- "LU-NB-3"
+serLM10$PDX <- "LU-NB-3"
+serPT3A$PDX <- "LU-NB-1"
+serPT3B$PDX <- "LU-NB-1"
+serPT4$PDX <- "LU-NB-2"
+serPT5$PDX <- "LU-NB-2"
+serPT7$PDX <- "LU-NB-2"
+serPT8$PDX <- "LU-NB-3"
+serPT9$PDX <- "LU-NB-3"
+serPT10$PDX <- "LU-NB-3"
+
+serLM1$type <- "LM"
+serLM2$type <- "LM"
+serLM4$type <- "LM"
+serLM5$type <- "LM"
+serLM6$type <- "LM"
+serLM8$type <- "LM"
+serLM9$type <- "LM"
+serLM10$type <- "LM"
+serPT3A$type <- "PT"
+serPT3B$type <- "PT"
+serPT4$type <- "PT"
+serPT5$type <- "PT"
+serPT7$type <- "PT"
+serPT8$type <- "PT"
+serPT9$type <- "PT"
+serPT10$type <- "PT"
+
+serLM1$mouse <- "1"
+serLM2$mouse <- "2"
+serLM4$mouse <- "4"
+serLM5$mouse <- "5"
+serLM6$mouse <- "6"
+serLM8$mouse <- "8"
+serLM9$mouse <- "9"
+serLM10$mouse <- "10"
+serPT3A$mouse <- "3"
+serPT3B$mouse <- "3"
+serPT4$mouse <- "4"
+serPT5$mouse <- "5"
+serPT7$mouse <- "7"
+serPT8$mouse <- "8"
+serPT9$mouse <- "9"
+serPT10$mouse <- "10"
+
+serLM1$batch <- "B1"
+serLM2$batch <- "B1"
+serLM4$batch <- "B1"
+serLM5$batch <- "B1"
+serLM6$batch <- "B2"
+serLM8$batch <- "B2"
+serLM9$batch <- "B2"
+serLM10$batch <- "B2"
+serPT3A$batch <- "B3"
+serPT3B$batch <- "B4"
+serPT4$batch <- "B5"
+serPT5$batch <- "B6"
+serPT7$batch <- "B7"
+serPT8$batch <- "B8"
+serPT9$batch <- "B9"
+serPT10$batch <- "B10"
+
+serLM1$PDX_type <- "LM LU-NB-1"
+serLM2$PDX_type <- "LM LU-NB-1"
+serLM4$PDX_type <- "LM LU-NB-2"
+serLM5$PDX_type <- "LM LU-NB-2"
+serLM6$PDX_type <- "LM LU-NB-2"
+serLM8$PDX_type <- "LM LU-NB-3"
+serLM9$PDX_type <- "LM LU-NB-3"
+serLM10$PDX_type <- "LM LU-NB-3"
+serPT3A$PDX_type <- "PT LU-NB-1"
+serPT3B$PDX_type <- "PT LU-NB-1"
+serPT4$PDX_type <- "PT LU-NB-2"
+serPT5$PDX_type <- "PT LU-NB-2"
+serPT7$PDX_type <- "PT LU-NB-2"
+serPT8$PDX_type <- "PT LU-NB-3"
+serPT9$PDX_type <- "PT LU-NB-3"
+serPT10$PDX_type <- "PT LU-NB-3"
+
+serLM1$type_mouse <- "LM1"
+serLM2$type_mouse <- "LM2"
+serLM4$type_mouse <- "LM4"
+serLM5$type_mouse <- "LM5"
+serLM6$type_mouse <- "LM6"
+serLM8$type_mouse <- "LM8"
+serLM9$type_mouse <- "LM9"
+serLM10$type_mouse <- "LM10"
+serPT3A$type_mouse <- "PT3A"
+serPT3B$type_mouse <- "PT3B"
+serPT4$type_mouse <- "PT4"
+serPT5$type_mouse <- "PT5"
+serPT7$type_mouse <- "PT7"
+serPT8$type_mouse <- "PT8"
+serPT9$type_mouse <- "PT9"
+serPT10$type_mouse <- "PT10"
+
+#Merging into 1 object
+serAll <- merge(serLM1, c(serLM2, serLM4, serLM5, serLM6, serLM8, serLM9, serLM10, serPT3A, serPT3B, serPT4, serPT5, serPT7, serPT8, serPT9, serPT10), add.cell.ids = c("LM1", "LM2", "LM4", "LM5", "LM6", "LM8", "LM9", "LM10", "PT3A", "PT3B", "PT4", "PT5", "PT7", "PT8", "PT9", "PT10"))
+serAll <- JoinLayers(serAll)
+
+#object with only PT to be able to compensate for chemistry difference and intron inclusion as newer run include more genes
+serPT <- merge(serPT3A, c(serPT3B, serPT4, serPT7, serPT8), add.cell.ids = c("PT3A", "PT3B", "PT4", "PT7", "PT8"))
+serPT <- JoinLayers(serPT)
+
+#object with only LM to be able to compensate for chemistry difference and intron inclusion as newer run include more genes
+serLM <- merge(serLM1, c(serLM2, serLM4, serLM5, serLM6, serLM8, serLM9, serLM10), add.cell.ids = c("LM1", "LM2", "LM4", "LM5", "LM6", "LM8", "LM9", "LM10"))
+serLM <- JoinLayers(serLM)
+
+#Remove unecessary objects
+rm(serLM1, serLM2, serLM4, serLM5, serLM6, serLM8, serLM9, serLM10, serPT3A, serPT3B, serPT4, serPT5, serPT7, serPT8, serPT9, serPT10)
+gc()
+
+#Showing size of dataset
+dim(serAll)
+table(serAll$type_mouse)
+table(serAll$PDX_type)
+table(serAll$type)
+
+```
+Size of original dataset
+###########################################################################################################
+##Filtering
+```{r Checking size}
+length(rownames(serAll))
+length(rownames(serPT))
+length(rownames(serLM))
+```
+Skillnaden i antal gener analyserade hos PT och LM. Delvis beroende på chemistry
+
+```{r Filtering after decontX}
+#genesLM <- rownames(serLM)
+#genesPT <- rownames(serPT)
+#sharedGenes = intersect(genesLM, genesPT)
+#filteredData <- subset(serAll, features = sharedGenes) #Keeping only genes expressed both in PT and in LM in some degree. 
+
+countMatrix <- GetAssayData(serAll, assay = "RNA", layer = "counts")
+countMatrix[is.na(countMatrix)] <- 0
+filteredData <- SetAssayData(serAll, assay = "RNA", layer = "counts", new.data = countMatrix) #Remove NA's introduced in decontX. 
+
+filteredData <- subset(filteredData, nFeature_RNA > 0) #Remove cells with no expressed genes (the expression was removed in decontX as cells were decontamination)
+#Showing size of dataset
+dim(filteredData)
+```
+Antal gener och celler efter exklusion av gener endast i LM och endast i PT, chemistry v4. 
+
+```{r Calculate and plot features}
+rm(serPT, sharedGenes, countMatrix)
+gc()
+
+#Showing Mitochondrial, Ribosomal, Hemoglobin, Platelate markers
+filteredData <- PercentageFeatureSet(filteredData, pattern = "^MT-", col.name = "percent_mito")
+filteredData <- PercentageFeatureSet(filteredData, "^RP[SL]", col.name = "percent_ribo")
+filteredData <- PercentageFeatureSet(filteredData, "^HB[^(P|E|S)]", col.name = "percent_hb")
+filteredData <- PercentageFeatureSet(filteredData, "PECAM1|PF4", col.name = "percent_plat")
+
+#Creating violin plots of QC variables
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb", "percent_plat")
+NormalizeData(filteredData)
+VlnPlot(filteredData, group.by = "type_mouse", split.by = "type", features = feats, pt.size = 0.05, ncol = 3)
+
+```
+
+We see high mitochondrial gene expression in many cells, this is indicative of cell membrane damage, allowing free RNA to leave the cytoplasm but not mitochondias due to their size. We want to filter out these cells. As well as cells with low total expression and low ribosomal expression. 
+
+We can also limit the amount of genes we analyse by excluding genes expressed by only a few cells, as they will not hold any significant information for analysis. We will also exclude mitochondrial, ribosomal, and hemoglobin genes as physiological fluctuations in these may influence our analysis as well. 
+
+```{r Filter based on features}
+#Filter out cells and genes with low expression
+selectCell <- WhichCells(filteredData, expression = nFeature_RNA > 100)
+selectFeat <- rownames(filteredData)[Matrix::rowSums(filteredData[["RNA"]]$counts) > 10]
+filteredData <- subset(filteredData, features = selectFeat, cells = selectCell)
+
+#Filter out cells with high mitocondrial and low ribosomal expression
+filteredData <- subset(filteredData, percent_mito < 20 & percent_ribo > 5)
+```
+Filtering done:
+*Remove cells with less than 100 genes expressed.
+*Remove genes expressed by less than 10 cells.
+*Remove cells with above 20% of gene expression being mitochondrial genes.
+*Remove cells with less than 5% of gene expression being ribosomal genes.
+
+```{r Plotting filtered data}
+#Showing size of dataset
+dim(filteredData)
+table(filteredData$type_mouse)
+table(filteredData$PDX_type)
+table(filteredData$type)
+
+
+#New violin plot of QC variables
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb")
+VlnPlot(filteredData, group.by = "type_mouse", features = feats, pt.size = 0.05, ncol = 3) + NoLegend()
+```
+Size of dataset and visualization of quality control variables after first filtering. 
+
+```{r Filter out genes}
+# Filter Mitochondrial, Ribosomal and Hemoglobin genes
+filteredData <- filteredData[!grepl("^MT-", rownames(filteredData)), ]
+filteredData <- filteredData[!grepl("^RP[SL]", rownames(filteredData)), ]
+filteredData <- filteredData[!grepl("^HB[^(P|E|S)]", rownames(filteredData)), ]
+dim(filteredData)
+```
+
+Filtering done:
+*Remove mitochondrial genes
+*Remove ribosomal genes
+*Remove Hemoglobin genes
+Showing new dimensions fo dataset.
+
+```{r Calculate doublets (DoubletFinder)}
+
+run_doubletfinder_custom <- function(seu_sample_subset, multiplet_rate = NULL){
+  # for debug
+  #seu_sample_subset <- samp_split[[1]]
+  # Print sample number
+  print(paste0("Sample ", unique(seu_sample_subset[['batch']]), '...........')) 
+  
+  #Manually setting predicted doublet rate based on recovered cells per batch
+  if(unique(seu_sample_subset[['batch']]) == 'B1'){
+    multiplet_rate <- 0.008
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B2'){
+    multiplet_rate <- 0.008
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B3'){
+    multiplet_rate <- 0.023
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B4'){
+    multiplet_rate <- 0.008
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B5'){
+    multiplet_rate <- 0.023
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B6'){
+    multiplet_rate <- 0.076
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B7'){
+    multiplet_rate <- 0.031
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B8'){
+    multiplet_rate <- 0.039
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B9'){
+    multiplet_rate <- 0.092
+  }
+  if(unique(seu_sample_subset[['batch']]) == 'B10'){
+    multiplet_rate <- 0.076
+  }
+  
+  # Pre-process seurat object with standard seurat workflow --- 
+  sample <- NormalizeData(seu_sample_subset, verbose = FALSE)
+  sample <- FindVariableFeatures(sample, verbose = FALSE)
+  sample <- ScaleData(sample, verbose = FALSE)
+  #sample <- SCTransform(seu_sample_subset, verbose = FALSE)
+  #sample <- RunPCA(sample, nfeatures.print = 10, verbose = FALSE)
+  sample <- RunPCA(sample, verbose = FALSE)
+  
+  # Find significant PCs
+  stdv <- sample[["pca"]]@stdev
+  percent_stdv <- (stdv/sum(stdv)) * 100
+  cumulative <- cumsum(percent_stdv)
+  co1 <- which(cumulative > 90 & percent_stdv < 5)[1] 
+  co2 <- sort(which((percent_stdv[1:length(percent_stdv) - 1] - 
+                       percent_stdv[2:length(percent_stdv)]) > 0.1), 
+              decreasing = T)[1] + 1
+  min_pc <- min(co1, co2)
+  
+  # Finish pre-processing with min_pc
+  sample <- RunUMAP(sample, dims = 1:min_pc, verbose = FALSE)
+  sample <- FindNeighbors(object = sample, dims = 1:min_pc, verbose = FALSE)              
+  sample <- FindClusters(object = sample, resolution = 0.1, verbose = FALSE)
+  
+  # pK identification (no ground-truth) 
+  #introduces artificial doublets in varying props, merges with real data set and 
+  # preprocesses the data + calculates the prop of artficial neighrest neighbours, 
+  # provides a list of the proportion of artificial nearest neighbours for varying
+  # combinations of the pN and pK
+  sweep_list <- paramSweep(sample, PCs = 1:min_pc, sct = FALSE)   
+  sweep_stats <- summarizeSweep(sweep_list)
+  bcmvn <- find.pK(sweep_stats) # computes a metric to find the optimal pK value (max mean variance normalised by modality coefficient)
+  # Optimal pK is the max of the bimodality coefficient (BCmvn) distribution
+  optimal.pk <- bcmvn %>% 
+    dplyr::filter(BCmetric == max(BCmetric)) %>%
+    dplyr::select(pK)
+  optimal.pk <- as.numeric(as.character(optimal.pk[[1]]))
+  
+  ## Homotypic doublet proportion estimate
+  annotations <- sample@meta.data$seurat_clusters # use the clusters as the user-defined cell types
+  homotypic.prop <- modelHomotypic(annotations) # get proportions of homotypic doublets
+  
+  #multiply by number of cells to get the number of expected multiplets
+  nExp.poi <- round(multiplet_rate * nrow(sample@meta.data)) 
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop)) # expected number of doublets
+  
+  # run DoubletFinder
+  sample <- doubletFinder(seu = sample, 
+                          PCs = 1:min_pc, 
+                          pK = optimal.pk, #the neighborhood size used to compute the number of artificial nearest neighbours
+                          nExp = nExp.poi.adj) #number of expected real doublets
+  
+  # change name of metadata column with Singlet/Doublet information
+  colnames(sample@meta.data)[grepl('DF.classifications.*', colnames(sample@meta.data))] <- "doublet_finder"
+  
+  #DimPlot(sample, group.by = "doublet_finder")
+  
+  #get the metadata column with singlet, doublet info
+  double_finder_res <- sample@meta.data['doublet_finder'] 
+  #add the cell IDs as new column to be able to merge correctly
+  double_finder_res <- rownames_to_column(double_finder_res, "row_names") 
+  return(double_finder_res)
+}
+
+data.split <- SplitObject(filteredData, split.by = "batch")
+data.split <- lapply(data.split, run_doubletfinder_custom)
+
+sglt_dblt_metadata <- data.frame(bind_rows(data.split)) # merge to a single dataframe
+rownames(sglt_dblt_metadata) <- sglt_dblt_metadata$row_names # assign cell IDs to row names to ensure match
+sglt_dblt_metadata$row_names <- NULL
+head(sglt_dblt_metadata)
+filteredData <- AddMetaData(filteredData, sglt_dblt_metadata, col.name = 'doublet_finder')
+
+rm(data.split, feats, sglt_dblt_metadata)
+
+# Check how doublets singlets differ in QC measures per sample.
+VlnPlot(filteredData, group.by = 'batch', split.by = "doublet_finder",
+        features = c("nFeature_RNA", "nCount_RNA", "percent_ribo"), 
+        ncol = 3, pt.size = 0) + theme(legend.position = 'right')
+
+```
+Plot showing higher counts and featured genes in doublets than singlets. 
+
+
+```{r Removing doublets and genes not present in both datasets}
+filteredData <- filteredData[, filteredData@meta.data[, "doublet_finder"] == "Singlet"]
+
+onlyLM <- subset(filteredData, type == "LM")
+onlyPT <- subset(filteredData, orig.ident %in% c("3_JEPDX1_7A", "3_JEPDX1_7B", "4_JEPDX2_5", "7_CHPDX2_2", "8_JEPDX3_5"))
+selectFeat <- rownames(onlyLM)[Matrix::rowSums(onlyLM[["RNA"]]$counts) > 1]
+filteredData <- subset(filteredData, features = selectFeat)
+selectFeat <- rownames(onlyPT)[Matrix::rowSums(onlyPT[["RNA"]]$counts) > 1]
+filteredData <- subset(filteredData, features = selectFeat)
+
+rm(onlyLM, onlyPT, selectFeat)
+saveRDS(filteredData, file = "SeuratObject_filteredData.rds")
+filteredData <- readRDS("SeuratObject_filteredData.rds")
+
+dim(filteredData)
+table(filteredData$type_mouse)
+table(filteredData$PDX_type)
+table(filteredData$type)
+```
+Dataset size after filtering
+Filtering done:
+*Remove doublets. (amount of doublets filtered is based of predicted doublets, which increase with batch size. Liver metastasis sampels wer done with sample 1-4 in one batch and 5-8 in one. All primary tumor samples were run in individual, larger batches, leading to a higher frequency of doublets as well.)
+
+##########################################################################################################
+##Preparation of data, Integration
+Normalizing data: Each cell has a different total numbers of reads. Normalizing compensates for that.  
+Finding variable features: Finding genes with high variance.
+Scaling data: Centers and equalizes the value of each genes. Sets mean = 0 and variance = 1.
+PCA: Weights the found variable features to capture as much variation as possible.
+
+Not using SCTransform: https://www.reddit.com/r/bioinformatics/comments/1kdag9p/seurat_v5_sctransform_deg_analyses_and/
+```{r Integrating and processing}
+processedData <- filteredData
+processedData[["RNA"]] <- split(processedData[["RNA"]], f = filteredData$batch)
+
+processedData <- NormalizeData(processedData, verbose = FALSE)
+processedData <- FindVariableFeatures(processedData, verbose = FALSE)
+processedData <- ScaleData(processedData, verbose = FALSE)
+processedData <- RunPCA(processedData, verbose = FALSE)
+
+#Integrating
+integratedData <- IntegrateLayers(object = processedData, method = HarmonyIntegration, group.by.vars = "batch", assay.use = "RNA", orig.reduction = "pca", new.reduction = "harmony", verbose = FALSE)
+integratedData[["RNA"]] <- JoinLayers(integratedData[["RNA"]])
+
+#objectList <- SplitObject(filteredData, split.by = "batch")
+#objectList <- lapply(objectList, function(serObj){
+#  serObjSCT <- SCTransform(serObj, return.only.var.genes = FALSE, verbose = FALSE)
+#  #serObjSCT <- RunPCA(serObjSCT, assay = "SCT", verbose = FALSE)
+#  serObjSCT
+#})
+
+#varFeat1 <- VariableFeatures(objectList[[1]])
+#varFeat2 <- VariableFeatures(objectList[[2]])
+#varFeat3 <- VariableFeatures(objectList[[3]])
+#varFeat4 <- VariableFeatures(objectList[[4]])
+#varFeat5 <- VariableFeatures(objectList[[5]])
+#varFeat6 <- VariableFeatures(objectList[[6]])
+#varFeat7 <- VariableFeatures(objectList[[7]])
+#varFeat8 <- VariableFeatures(objectList[[8]])
+#varFeat9 <- VariableFeatures(objectList[[9]])
+#varFeat10 <- VariableFeatures(objectList[[10]])
+#varFeat <- c(varFeat1, varFeat2, varFeat3, varFeat4, varFeat5, varFeat6, varFeat7, varFeat8, varFeat9, varFeat10)
+#varFeat <- unique(varFeat)
+
+#features <- SelectIntegrationFeatures(object.list = objectList, nfeatures = 3000)
+#processedData <- merge(objectList[[1]], y = objectList[-1])
+#VariableFeatures(processedData) <- features
+
+#processedData <- RunPCA(processedData, assay = "SCT", verbose = FALSE)
+#integratedData <- harmony::RunHarmony(object = processedData, group.by.vars = "batch", reduction = "pca", #assay.use = "SCT", reduction.save = "harmony", project.dim = FALSE)
+#integratedData[["RNA"]] <- JoinLayers(integratedData[["RNA"]])
+
+
+
+saveRDS(processedData, file = "SeuratObject_processedData.rds")
+saveRDS(integratedData, file = "SeuratObject_integratedData.rds")
+
+integratedData <- readRDS("SeuratObject_integratedData.rds")
+
+#Printing components of PCA
+wrap_plots(
+  DimPlot(processedData, reduction = "pca", group.by = "PDX_type", dims = 1:2),
+  DimPlot(processedData, reduction = "pca", group.by = "PDX_type", dims = 3:4),
+  DimPlot(processedData, reduction = "pca", group.by = "PDX_type", dims = 5:6),
+  ncol = 3
+) + plot_layout(guides = "collect")
+
+```
+Showing the variance captured by first 6 PCA dimensions. (Maybe not relevant to show?) 
+```{r PCA components}
+#What genes contribute to PCs
+VizDimLoadings(processedData, dims = 1:4, reduction = "pca", ncol = 2, balanced = T)
+```
+Showing what genes contributed first 5 PCA dimensions. (Relevant?)
+
+##Visualising using UMAP and tSNE
+UMAP is better for visualizing variability between cell clusters. tSNE is better for visualizing in-group variability. 
+```{r UMAP of Integrated/non}
+#UMAP on integrated data
+data.umap <- RunUMAP(integratedData, dims = 1:15, reduction = "harmony", reduction.name = "umap_harmony", verbose = FALSE, assay = "RNA")
+##UMAP on NonIntegrated data
+#nonIntData <- RunUMAP(processedData, dims = 1:15, reduction = "pca", verbose = FALSE)
+
+##tSNE on integrated data
+#data.tsne <- RunTSNE(
+#  integratedData,
+#  reduction = "harmony", dims = 1:15,
+#  perplexity = 30,
+#  max_iter = 1000,
+#  theta = 0.5,
+#  eta = 200,
+#  num_threads = 0,
+#  verbose = FALSE
+#)
+##tSNE on NonIntegrated data
+#data.tsneNonInt <- RunTSNE(
+#  processedData,
+#  reduction = "pca", dims = 1:15,
+#  perplexity = 30,
+#  max_iter = 1000,
+#  theta = 0.5,
+#  eta = 200,
+#  num_threads = 0,
+#  vebrose = FALSE
+#)
+
+cols_type <- c("PT" = "#6BAED6", "LM" = "#E6550D")
+cols_PDX_type <- c("LM LU-NB-1" = "#084594", "LM LU-NB-2" = "#006D2C", "LM LU-NB-3" = "#A63603", "PT LU-NB-1" = "#2d9ffc", "PT LU-NB-2" = "#74C476", "PT LU-NB-3" = "#FD8D3C")
+cols_PDX <- c("LU-NB-1" = "#2d9ffc", "LU-NB-2" = "#74C476", "LU-NB-3" = "#FD8D3C")
+cols_PDX_LM <- c("LU-NB-1" = "#084594", "LU-NB-2" = "#006D2C", "LU-NB-3" = "#A63603")
+#clustCol <- DiscretePalette_scCustomize(num_colors = 11, palette = "glasbey")
+clustCol <- brewer.pal(n = 12, name = "Paired")
+cols_clust <- c("1" = clustCol[1], "2" = clustCol[2], "3" = clustCol[3], "4" = clustCol[4], "5" = clustCol[5], "6" = clustCol[6], "7" = clustCol[7], "8" = clustCol[8], "9" = clustCol[9], "10" = clustCol[10])
+
+
+##Summorize based on mouse
+#wrap_plots(
+#  DimPlot(nonIntData, reduction = "umap", group.by = "PDX_type", cols = cols_PDX_type) + ggtitle("NonIntegrated #UMAP"),
+#  DimPlot(data.umap, reduction = "umap_harmony", group.by = "PDX_type", cols = cols_PDX_type) + #ggtitle("Harmony UMAP"),
+#  DimPlot(nonIntData, reduction = "umap", group.by = "type", cols = cols_type) + ggtitle("NonIntegrated UMAP"),
+#  DimPlot(data.umap, reduction = "umap_harmony", group.by = "type", cols = cols_type) + ggtitle("Harmony #UMAP"),  
+#  ncol = 2
+#) + plot_layout(guides = "collect")
+```
+Showing UMAP based on PDX and type before and after compensating for batch effect(integrating)
+```{r tSNE of Integrated/Non}
+#wrap_plots(
+#  DimPlot(data.tsneNonInt, reduction = "tsne", group.by = "PDX_type", cols = cols_PDX_type) + #ggtitle("NonIntegrated tSNE"),
+#  DimPlot(data.tsne, reduction = "tsne", group.by = "PDX_type", cols = cols_PDX_type) + ggtitle("Harmony #tSNE"),
+#  DimPlot(data.tsneNonInt, reduction = "tsne", group.by = "type", cols = cols_type) + ggtitle("NonIntegrated #tSNE"),
+#  DimPlot(data.tsne, reduction = "tsne", group.by = "type", cols = cols_type) + ggtitle("Harmony tSNE"),
+#  ncol = 2
+#) + plot_layout(guides = "collect")
+#rm(data.tsneNonInt, data.tsne, nonIntData, integratedData)
+```
+Showing tSNE based on PDX and type and before and after compensating for batch effect(integrating)
+```{r UMAP of individual lines and LM}
+#onlyLM.umap <- subset(data.umap, type == "LM")
+#onlyPDX1.umap <- subset(data.umap, PDX == "LU-NB-1" & type == "PT")
+#onlyPDX2.umap <- subset(data.umap, PDX == "LU-NB-2" & type == "PT")
+#onlyPDX3.umap <- subset(data.umap, PDX == "LU-NB-3" & type == "PT")
+#wrap_plots(
+#  DimPlot(onlyPDX1.umap, reduction = "umap_harmony", group.by = "type", cols = "#2d9ffc") + NoLegend() + #ggtitle("PT LU-NB-1"),
+#  DimPlot(onlyPDX2.umap, reduction = "umap_harmony", group.by = "type", cols = "#74C476") + NoLegend() + #ggtitle("PT LU-NB-2"),
+#  DimPlot(onlyPDX3.umap, reduction = "umap_harmony", group.by = "type", cols = "#FD8D3C") + NoLegend() + #ggtitle("PT LU-NB-3"),
+#  DimPlot(onlyLM.umap, reduction = "umap_harmony", group.by = "PDX", cols = cols_PDX_LM) + ggtitle("LM"),
+#  ncol = 2
+#) + plot_layout(guides = "collect")
+#
+#rm(onlyLM.umap, onlyPDX1.umap, onlyPDX2.umap, onlyPDX3.umap)
+```
+
+
+##Clustering
+```{r Clustering }
+#Clustering
+data.umap <- FindNeighbors(data.umap, dims = 1:15, verbose = FALSE, reduction = "harmony")
+data.umap <- FindClusters(data.umap, resolution = 0.30, verbose = FALSE)
+
+#data.umap$seurat_clusters <- as.character(as.integer(data.umap$seurat_clusters) + 1)
+#data.umap$seurat_clusters <- factor(data.umap$seurat_clusters, levels = 1:11)
+
+#data.tsne <- FindNeighbors(data.tsne, dims = 1:20, verbose = FALSE)
+#data.tsne <- FindClusters(data.tsne, resolution = 0.3, verbose = FALSE)
+
+#Visualising if calculated clusters correspond to celltypes
+
+#Setting cluster names 1-12
+new.cluster.ids <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10") 
+names(new.cluster.ids) <- levels(data.umap)
+data.umap <- RenameIdents(data.umap, new.cluster.ids)
+data.umap$seurat_clusters <- Idents(data.umap)
+
+Fig1a <- DimPlot(data.umap, reduction = "umap_harmony", group.by = "type", cols = cols_type, order = c("LM", "PT")) + ggtitle("Per Location") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+#DimPlot(data.umap, reduction = "umap_harmony", group.by = "PDX", cols = cols_PDX) + ggtitle("Cell line"), 
+Fig1b <- DimPlot(data.umap, reduction = "umap_harmony", group.by = "seurat_clusters", cols = cols_clust) + ggtitle("Per Cluster") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("UMAP_2") + xlab("UMAP_1")
+
+saveRDS(Fig1a, file = "Fig1a.rds")
+saveRDS(Fig1b, file = "Fig1b.rds")
+```
+Visualizing of calculated clusters and how they correspond to celltype
+```{r seperated UMAPs}
+#DimPlot(data.umap, reduction = "umap_harmony", group.by = "type", cols = cols_type, order = c("LM", "PT")) + #ggtitle("Location")
+#  #DimPlot(data.umap, reduction = "umap_harmony", group.by = "PDX", cols = cols_PDX) + ggtitle("Cell line"), 
+#DimPlot(data.umap, reduction = "umap_harmony", group.by = "seurat_clusters", cols = cols_clust) + #ggtitle("Clustered")
+```
+
+
+```{r Barplot of clusters in PDXs}
+onlyPTPDX1 <- subset(data.umap, PDX == "LU-NB-1" & type == "PT")
+onlyPTPDX2 <- subset(data.umap, PDX == "LU-NB-2" & type == "PT")
+onlyPTPDX3 <- subset(data.umap, PDX == "LU-NB-3" & type == "PT")
+onlyLMPDX1 <- subset(data.umap, PDX == "LU-NB-1" & type == "LM")
+onlyLMPDX2 <- subset(data.umap, PDX == "LU-NB-2" & type == "LM")
+onlyLMPDX3 <- subset(data.umap, PDX == "LU-NB-3" & type == "LM")
+
+CelllineType <- c(rep("PT LU-NB-1", 10), rep("LM LU-NB-1", 10), rep("PT LU-NB-2", 10), rep("LM LU-NB-2", 10), rep("PT LU-NB-3", 10), rep("LM LU-NB-3", 10))
+Clusters <- c(rep(1:10, 6))
+Percentage <- c(c(100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "1"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "2"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "3"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "4"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "5"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "6"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "7"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "8"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "9"))/length(colnames(onlyPTPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "10"))/length(colnames(onlyPTPDX1))),
+              c(100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "1"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "2"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "3"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "4"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "5"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "6"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyPTPDX1, expression = seurat_clusters == "7"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "8"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "9"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = seurat_clusters == "10"))/length(colnames(onlyLMPDX1))),
+              c(100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "1"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "2"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "3"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "4"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "5"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "6"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "7"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "8"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "9"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = seurat_clusters == "10"))/length(colnames(onlyPTPDX2))), 
+              c(100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "1"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "2"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "3"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "4"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "5"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "6"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "7"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "8"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "9"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = seurat_clusters == "10"))/length(colnames(onlyLMPDX2))), 
+              c(100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "1"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "2"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "3"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "4"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "5"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "6"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "7"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "8"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "9"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = seurat_clusters == "10"))/length(colnames(onlyPTPDX3))),
+              c(100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "1"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "2"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "3"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "4"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "5"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "6"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "7"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "8"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "9"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = seurat_clusters == "10"))/length(colnames(onlyLMPDX3))))
+
+barplotData <- data.frame(CelllineType, Clusters, Percentage)
+barplotData$Clusters <- factor(barplotData$Clusters, levels = 1:10)
+barplotData$CelllineType <- factor(barplotData$CelllineType, levels = c("PT LU-NB-1", "LM LU-NB-1", "PT LU-NB-2", "LM LU-NB-2", "PT LU-NB-3", "LM LU-NB-3"))
+
+Fig1c <- ggplot(barplotData, aes(fill=Clusters, y=Percentage, x=CelllineType, size=8)) + 
+  geom_bar(position = "fill", stat = "identity", width = 0.9) + 
+  ggtitle("Percentage of Clusters per PDX and Location") +
+  scale_fill_manual(values = cols_clust) +
+  scale_y_continuous(labels = scales::label_percent(), expand = c(0, 0)) +
+  scale_x_discrete(limits = c("PT LU-NB-1", "LM LU-NB-1", "", "PT LU-NB-2", "LM LU-NB-2", "", "PT LU-NB-3", "LM LU-NB-3"), labels = c("PT LU-NB-1", "LM LU-NB-1", "", "PT LU-NB-2", "LM LU-NB-2", "", "PT LU-NB-3", "LM LU-NB-3")) +
+  #annotate(geom = "text", x = 1, y = -0.02, label = "PT", size = 3) +
+  #annotate(geom = "text", x = 2, y = -0.02, label = "LM", size = 3) +
+  #annotate(geom = "text", x = 4, y = -0.02, label = "PT", size = 3) +
+  #annotate(geom = "text", x = 5, y = -0.02, label = "LM", size = 3) +
+  #annotate(geom = "text", x = 7, y = -0.02, label = "PT", size = 3) +
+  #annotate(geom = "text", x = 8, y = -0.02, label = "LM", size = 3) +
+  #theme_minimal() +
+  geom_text(aes(label = ifelse(Percentage > 3, round(Percentage, 2), "")), 
+            position = position_fill(vjust = 0.5), color =  "black", size = 4) +
+  theme_minimal() +
+  theme(
+  legend.position = "right",
+  legend.title = element_blank(),
+  axis.title.x = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.title.y = element_blank(),
+  axis.line.y = element_line(color = "black", linewidth = 1.5, lineend = "square"),
+  axis.ticks.y = element_line(color = "black", linewidth = 1.5),
+  axis.ticks.length.y = unit(0.2, "cm"),
+  axis.line.x = element_blank(),
+  axis.text.x = element_text(angle = 45, hjust = 1, size = 15),
+  axis.text.y = element_text(size = 15),
+  panel.grid = element_blank(),
+  text = element_text(family = "sans", size = 12, color = "black")
+)
+
+saveRDS(Fig1c, file = "Fig1c.rds")
+
+rm(onlyPTPDX1, onlyPTPDX2, onlyPTPDX3, onlyLMPDX1, onlyLMPDX2, onlyLMPDX3, CelllineType, Fraction, Clusters, barplotData)
+```
+
+
+##########################################################################################################
+##Investigating clusters
+```{r Finding markers/cluster + heatmap}
+#Finding cluster markers and plotting in heatmap
+#data.umap <- PrepSCTFindMarkers(data.umap, assay = "SCT", verbose = TRUE)
+clusterMarkers <- FindAllMarkers(data.umap, group.by = "seurat_clusters")
+clusterMarkers %>% 
+  group_by(cluster) %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  slice_head(n = 10) %>%
+  #slice_max(avg_log2FC, n = 10) %>%
+  #ungroup() %>%
+  #group_by(gene) %>%
+  #slice_max(avg_log2FC, n = 1) %>%
+  ungroup() -> top10Cluster
+#clusterHeatmap <- ScaleData(data.umap, features = top10Cluster$gene)
+#clusterHeatmap <- GetResidual(data.umap, features = top10Cluster$gene)
+#DoHeatmap(data.umap, features = top10Cluster$gene)
+```
+Heatmap av top 10 gener i varje cluster
+
+```{r ComplexHeatmap}
+top10AdrnGenes <- c("RBP1", "NPW", "PCSK1N", "GAL", "NBEA", "LINGO2", "TMSB10", "STMN2", "S100A1", "CDKN3", "RRM2", "UBE2C", "BIRC5", "PBK", "NUSAP1", "EPB41L3", "DOCK3")
+top10MesGenes <- c("VIM", "S100A6", "APOE", "LGALS1", "MT2A", "S100A4", "HLA-B", "IGF2BP2", "ALX1")
+top10ProlifGenes <- c("CCNB1", "CCNB2", "PTTG1", "BIRC5", "CDKN3", "DLGAP5", "UBE2C", "CENPA", "NUF2", "TPX2", "RRM2", "CDK1", "GINS2", "TYMS", "UBE2T", "PCLAF", "CENPW", "PBK", "NUSAP1")
+
+top10Cluster <- unique(top10Cluster$gene)
+clusterHeatmap <- ScaleData(data.umap, features = top10Cluster)
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "1")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+heatmapAnnR <- rowAnnotation(Geneinf = ifelse(rownames(heatmapMatr0) %in% top10AdrnGenes, "ADRN", ifelse(rownames(heatmapMatr0) %in% top10MesGenes, "MES", ifelse(rownames(heatmapMatr0) %in% top10ProlifGenes, "Prolif", "."))), show_legend = FALSE, col = list(Geneinf = c("ADRN" = "orange", "MES" = "navy", "Prolif" = "green", "." = "white")), annotation_label = c(" "), simple_anno_size = unit(2, "mm"))
+col_fun = colorRamp2(c(-2, 0, 2), c("#FF00FF", "#000000", "#FFFF00"))
+h0 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "1", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "2")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h1 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "2", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "3")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h2 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "3", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "4")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, type = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, type = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h3 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "4", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "5")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h4 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "5", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "6")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h5 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "6", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "7")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h6 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "7", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "8")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h7 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "8", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "9")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h8 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "9", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "10")
+heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
+heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+h9 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "10", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6), width = unit(3, "mm"), right_annotation = heatmapAnnR)
+
+
+matrixLGND <- Legend(col_fun = col_fun, title = "Expression")
+clusterLGND <- Legend(at = 1:10, title = "Clusters", legend_gp = gpar(fill = cols_clust))
+cellLineLGND <- Legend(labels = c("LU-NB-1", "LU-NB-2", "LU-NB-3"), title = "PDX", legend_gp = gpar(fill = cols_PDX))
+typeLGND <- Legend(labels = c("PT", "LM"), title = "Tumor type", legend_gp = gpar(fill = cols_type))
+geneLGND <- Legend(labels = c("ADRN", "MES", "Prolif"), title = "Gene information", legend_gp = gpar(fill = c("ADRN" = "orange", "MES" = "navy", "Prolif" = "green")))
+LGNDs <- packLegend(matrixLGND, clusterLGND, cellLineLGND, typeLGND, geneLGND)
+
+fullHTMap <- h0 + h1 + h2 + h3 + h4 + h5 + h6 + h7 + h8 + h9
+Fig1d <- draw(fullHTMap, ht_gap = unit(1, "mm"), annotation_legend_list = LGNDs)
+
+saveRDS(Fig1d, file = "Fig1d.rds")
+
+rm(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, heatmapSer0, heatmapMatr0, heatmapAnn0, matrixLGND, clusterLGND, cellLineLGND, typeLGND, LGNDs, fullHTMap, clusterHeatmap, geneLGND)
+```
+
+
+```{r Adr/mes genes}
+#comparing clusters to reference genes for adrenergic, mesenchymal and proliferating cellstates
+#adrn.genes <- c("PHOX2B","DBH","TH","DDC","CHGA","CHGB","SLC6A2","GATA3","HAND2","ISL1","ASCL1", "ZNF536", "PHOX2A", "HAND1", "ASCL1", "KLF13", "SOX11", "GATA2")
+adrn.genes2 <- c("TH", "DBH", "CHGA", "PHOX2B", "GATA3", "MYCN", "PHOX2A")
+#mes.genes <- c("VIM", "COL1A1","CXCL8", "TWIST2", "YAP1", "CD44", "COL3A1", "AXL", "FN1", "ACTA2", "S100A4", "RUNX2", "WWTR1", "IRF1", "PRRX1")
+mes.genes2 <- c("CD44", "FN1", "COL1A1", "RUNX2", "WWTR1", "IRF1", "SNAI2", "VIM")
+#prolif.genes <- c("MKI67","TOP2A","CENPF","UBE2C","HMGB2","TYMS", "PLK1", "E2F1", "FOXM1")
+
+
+#FeaturePlot(data.umap, features = mes.genes2, ncol = 3)
+#FeaturePlot(data.umap, features = adrn.genes2, ncol = 3)
+
+```
+
+```{r Calculate Adr/Mes score}
+data.umap <- AddModuleScore(data.umap, features = list(adrn.genes2), name = "ADRN")
+data.umap <- AddModuleScore(data.umap, features = list(mes.genes2), name = "MES")
+#data.umap <- AddModuleScore(data.umap, features = list(prolif.genes), name = "Prolif")
+#Plotting
+
+p <- FeaturePlot(data.umap, features = c("ADRN1", "MES1"), min.cutoff = "q10", max.cutoff = "q90", blend = TRUE, cols = c("lightgrey", "orange", "navy"), combine = FALSE)
+
+p[3] <- lapply(p[3], function(x) x+theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("UMAP_1") + xlab("UMAP_2"))
+
+p[4] <- lapply(p[4], function(x) x+theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("MES") + xlab("ADRN"))
+
+Fig2b <- p[3]
+Fig2c <- p[4]
+
+saveRDS(Fig2b, file = "Fig2b.rds")
+saveRDS(Fig2c, file = "Fig2c.rds")
+
+Fig2c
+```
+Adrenergic, mesenchymal and proliferation score calculater per cell.
+Plotted in featurePlot
+```{r Vlnplot of score}
+#Plotting
+VlnPlot(data.umap, features = c("ADRN1", "MES1"), group.by = "seurat_clusters", pt.size = 0, cols = cols_clust)
+```
+Plotted in VlnPlot for every cluster
+
+```{r Heatmap of Adr/Mes genes}
+#heatmap.data <- ScaleData(data.umap, features = c(adrn.genes2, mes.genes2))
+#DoHeatmap(heatmap.data, features = c(adrn.genes2, mes.genes2), group.by = "seurat_clusters", label = FALSE)
+```
+
+```{r Again}
+#heatmap.PT <- subset(heatmap.data, type == "PT")
+#heatmap.LM <- subset(heatmap.data, type == "LM")
+#DoHeatmap(heatmap.PT, features = c(adrn.genes2, mes.genes2), group.by = "seurat_clusters", label = FALSE)
+```
+
+```{r Again}
+#DoHeatmap(heatmap.LM, features = c(adrn.genes2, mes.genes2), group.by = "seurat_clusters", label = FALSE)
+#rm(heatmap.PT, heatmap.LM)
+```
+Heatmap av mes/adr/prolif gener i PT data
+```{r Assigning Adr/Mes identity}
+#Manually assigning Adrenergic, Mesenchymal and proliferative to clusters matching
+data.umap$cellState <- "Unassigned"
+data.umap$cellState[data.umap$seurat_clusters %in% c("1", "2", "3", "4", "5", "7", "8", "10")] <- "Adr"
+data.umap$cellState[data.umap$seurat_clusters %in% c("6", "9")] <- "Mes"
+#data.umap$cellState[data.umap$seurat_clusters %in% c("?")] <- "Proliferating"
+
+data.umap$type_state <- paste(data.umap$type, data.umap$cellState, sep = "_")
+data.umap$type_PDX_state <- paste(data.umap$PDX_type, data.umap$cellState, sep = "_")
+
+saveRDS(data.umap, file = "SeuratObject_data.umap.rds")
+data.umap <- readRDS("SeuratObject_data.umap.rds")
+
+#Checking against reference genes again
+#data.umap <- PrepSCTFindMarkers(data.umap)
+#avg.expr <- AverageExpression(data.umap, assay = "SCT", return.seruat = FALSE)$SCT
+#adrn.score <- colMeans(avg.expr[intersect(adrn.genes2, rownames(avg.expr)), ])
+#mes.score <- colMeans(avg.expr[intersect(mes.genes2, rownames(avg.expr)), ])
+#plot(adrn.score, mes.score, x.lab = "Adrenergic score", y.lab = "Mesenchymal score")
+```
+Plotting average expression of genes for cells and plotting against
+```{r Dotplot + Scatterplot of identity}
+#DotPlot(data.umap, features = c("PHOX2B","PRRX1","MKI67"), group.by = "cellState")
+Fig2a <- FeatureScatter(data.umap, feature1 = "ADRN1", feature2 = "MES1", split.by = "seurat_clusters", group.by = "seurat_clusters", cols = cols_clust) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("MES") + xlab("ADRN")
+
+saveRDS(Fig2a, file = "Fig2a.rds")
+```
+Sanity check
+```{r UMAP of identity}
+#DimPlot(data.umap, reduction = "umap_harmony", group.by = "cellState", label = TRUE, pt.size = 0.5) + NoLegend()
+```
+New UMAP with cellStates marked
+```{r Barplot of cellstate per PDX}
+onlyPTPDX1 <- subset(data.umap, PDX == "LU-NB-1" & type == "PT")
+onlyPTPDX2 <- subset(data.umap, PDX == "LU-NB-2" & type == "PT")
+onlyPTPDX3 <- subset(data.umap, PDX == "LU-NB-3" & type == "PT")
+onlyLMPDX1 <- subset(data.umap, PDX == "LU-NB-1" & type == "LM")
+onlyLMPDX2 <- subset(data.umap, PDX == "LU-NB-2" & type == "LM")
+onlyLMPDX3 <- subset(data.umap, PDX == "LU-NB-3" & type == "LM")
+
+CelllineType <- c(rep("PT LU-NB-1", 2), rep("LM LU-NB-1", 2), rep("PT LU-NB-2", 2), rep("LM LU-NB-2", 2), rep("PT LU-NB-3", 2), rep("LM LU-NB-3", 2))
+Cellstate <- c(rep(c("MES", "ADRN"), 6))
+Percentage <- c(c(100*length(WhichCells(onlyPTPDX1, expression = cellState == "Mes"))/length(colnames(onlyPTPDX1)),100* length(WhichCells(onlyPTPDX1, expression = cellState == "Adr"))/length(colnames(onlyPTPDX1))),
+              c(100*length(WhichCells(onlyLMPDX1, expression = cellState == "Mes"))/length(colnames(onlyLMPDX1)), 100*length(WhichCells(onlyLMPDX1, expression = cellState == "Adr"))/length(colnames(onlyLMPDX1))),
+              c(100*length(WhichCells(onlyPTPDX2, expression = cellState == "Mes"))/length(colnames(onlyPTPDX2)), 100*length(WhichCells(onlyPTPDX2, expression = cellState == "Adr"))/length(colnames(onlyPTPDX2))), 
+              c(100*length(WhichCells(onlyLMPDX2, expression = cellState == "Mes"))/length(colnames(onlyLMPDX2)), 100*length(WhichCells(onlyLMPDX2, expression = cellState == "Adr"))/length(colnames(onlyLMPDX2))), 
+              c(100*length(WhichCells(onlyPTPDX3, expression = cellState == "Mes"))/length(colnames(onlyPTPDX3)), 100*length(WhichCells(onlyPTPDX3, expression = cellState == "Adr"))/length(colnames(onlyPTPDX3))),
+              c(100*length(WhichCells(onlyLMPDX3, expression = cellState == "Mes"))/length(colnames(onlyLMPDX3)), 100*length(WhichCells(onlyLMPDX3, expression = cellState == "Adr"))/length(colnames(onlyLMPDX3))))
+
+barplotData <- data.frame(CelllineType, Cellstate, Percentage)
+barplotData$Cellstate <- factor(barplotData$Cellstate, levels = c("MES", "ADRN"))
+barplotData$CelllineType <- factor(barplotData$CelllineType, levels = c("PT LU-NB-1", "LM LU-NB-1", "PT LU-NB-2", "LM LU-NB-2", "PT LU-NB-3", "LM LU-NB-3"))
+cols_state <- c("ADRN" = "orange", "MES" = "navy")
+
+Fig2d <- ggplot(barplotData, aes(fill=Cellstate, y=Percentage, x=CelllineType, size=8)) + 
+  geom_bar(position = "fill", stat = "identity", width = 0.9) + 
+  ggtitle("Percentage ADRN/MES per PDX and Location") +
+  scale_fill_manual(values = cols_state) +
+  scale_y_continuous(labels = scales::label_percent(), expand = c(0, 0)) +
+  scale_x_discrete(limits = c("PT LU-NB-1", "LM LU-NB-1", "", "PT LU-NB-2", "LM LU-NB-2", "", "PT LU-NB-3", "LM LU-NB-3"), labels = c("PT LU-NB-1", "LM LU-NB-1", "", "PT LU-NB-2", "LM LU-NB-2", "", "PT LU-NB-3", "LM LU-NB-3")) +
+  #annotate(geom = "text", x = 1, y = -0.02, label = "PT", size = 3) +
+  #annotate(geom = "text", x = 2, y = -0.02, label = "LM", size = 3) +
+  #annotate(geom = "text", x = 4, y = -0.02, label = "PT", size = 3) +
+  #annotate(geom = "text", x = 5, y = -0.02, label = "LM", size = 3) +
+  #annotate(geom = "text", x = 7, y = -0.02, label = "PT", size = 3) +
+  #annotate(geom = "text", x = 8, y = -0.02, label = "LM", size = 3) +
+  theme_minimal() +
+  geom_text(aes(label = ifelse(Percentage > 3, round(Percentage, 2), "")), 
+            position = position_fill(vjust = 0.5), color = "white", size = 4) +
+  theme(
+  legend.position = "right",
+  legend.title = element_blank(),
+  axis.title.x = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.title.y = element_blank(),
+  axis.line.y = element_line(color = "black", linewidth = 1.5, lineend = "square"),
+  axis.ticks.y = element_line(color = "black", linewidth = 1.5),
+  axis.ticks.length.y = unit(0.2, "cm"),
+  axis.line.x = element_blank(),
+  axis.text.x = element_text(angle = 45, hjust = 1, size = 15),
+  axis.text.y = element_text(size = 15),
+  panel.grid = element_blank(),
+  text = element_text(family = "sans", size = 12, color = "black")
+)
+
+saveRDS(Fig2d, file = "Fig2d.rds")
+
+rm(onlyPTPDX1, onlyPTPDX2, onlyPTPDX3, onlyLMPDX1, onlyLMPDX2, onlyLMPDX3, CelllineType, Percentage, Cellstate, barplotData)
+```
+
+##########################################################################################################
+##Only LM data
+```{r Filtering LM data}
+#countMatrix <- GetAssayData(serLM, assay = "RNA", layer = "counts")
+#countMatrix[is.na(countMatrix)] <- 0
+#serLM <- SetAssayData(serLM, assay = "RNA", layer = "counts", new.data = countMatrix) #Remove NA's introduced #in decontX. 
+#serLM <- subset(serLM, nFeature_RNA > 0) #Remove cells with no expressed genes (the expression was removed in #decontX as cells were decontamination)
+
+##Showing Mitochondrial, Ribosomal, Hemoglobin, Platelate markers
+#filteredLM <- serLM
+#dim(filteredLM)
+#table(filteredLM$mouse)
+#table(filteredLM$PDX)
+
+#filteredLM <- PercentageFeatureSet(filteredLM, pattern = "^MT-", col.name = "percent_mito")
+#filteredLM <- PercentageFeatureSet(filteredLM, "^RP[SL]", col.name = "percent_ribo")
+#filteredLM <- PercentageFeatureSet(filteredLM, "^HB[^(P|E|S)]", col.name = "percent_hb")
+#filteredLM <- PercentageFeatureSet(filteredLM, "PECAM1|PF4", col.name = "percent_plat")
+
+#Filter out cells and genes with low expression
+#selectCell <- WhichCells(filteredLM, expression = nFeature_RNA > 100)
+#selectFeat <- rownames(filteredLM)[Matrix::rowSums(filteredLM[["RNA"]]$counts) > 10]
+#filteredLM <- subset(filteredLM, features = selectFeat, cells = selectCell)
+
+##Filter out cells with high mitochondrial and low ribosomal expression
+#filteredLM <- subset(filteredLM, percent_mito < 20 & percent_ribo > 5)
+
+## Filter Mitochondrial, Ribosomal and Hemoglobin genes
+#filteredLM <- filteredLM[!grepl("^MT-", rownames(filteredLM)), ]
+#filteredLM <- filteredLM[!grepl("^RP[SL]", rownames(filteredLM)), ]
+#filteredLM <- filteredLM[!grepl("^HB[^(P|E|S)]", rownames(filteredLM)), ]
+
+##DoubletFinder
+#LM.split <- SplitObject(filteredLM, split.by = "batch")
+#LM.split <- lapply(LM.split, run_doubletfinder_custom)
+
+#sglt_dblt_metadata <- data.frame(bind_rows(LM.split)) # merge to a single dataframe
+#rownames(sglt_dblt_metadata) <- sglt_dblt_metadata$row_names # assign cell IDs to row names to ensure match
+#sglt_dblt_metadata$row_names <- NULL
+#filteredLM <- AddMetaData(filteredLM, sglt_dblt_metadata, col.name = 'doublet_finder')
+#filteredLM <- filteredLM[, filteredLM@meta.data[, "doublet_finder"] == "Singlet"]
+
+#rm(sglt_dblt_metadata, LM.split, selectCell, selectFeat)
+
+#saveRDS(filteredLM, file = "SeuratObject_filteredLM.rds")
+#filteredLM <- readRDS("SeuratObject_filteredLM.rds")
+
+#dim(filteredLM)
+#table(filteredLM$mouse)
+#table(filteredLM$PDX)
+```
+Doing filtering with the same parameters
+```{r Integrating and processing LM data}
+#processedLM <- filteredLM
+#processedLM[["RNA"]] <- split(processedLM[["RNA"]], f = processedLM$batch)
+
+#processedLM <- NormalizeData(processedLM, verbose = FALSE)
+#processedLM <- FindVariableFeatures(processedLM, verbose = FALSE)
+#processedLM <- ScaleData(processedLM, verbose = FALSE)
+#processedLM <- RunPCA(processedLM, verbose = FALSE)
+
+#saveRDS(processedLM, file = "SeuratObject_processedLM.rds")
+#processedLM <- readRDS("SeuratObject_processedLM.rds")
+
+#Integrating
+#integratedLM <- IntegrateLayers(object = processedLM, method = HarmonyIntegration, orig.reduction = "pca", #new.reduction = "harmony", verbose = FALSE)
+#integratedLM[["RNA"]] <- JoinLayers(integratedLM[["RNA"]])
+
+#saveRDS(integratedLM, file = "SeuratObject_integratedLM.rds")
+#integratedLM <- readRDS("SeuratObject_integratedLM.rds")
+
+#UMAP and tSNE
+#finalLM <- RunUMAP(integratedLM, dims = 1:30, reduction = "harmony", reduction.name = "umap_harmony", verbose = 3FALSE)
+#finalLMtSNE <- RunTSNE(integratedLM, reduction = "harmony", dims = 1:15, perplexity = 30, max_iter = 1000, theta = 0.5, eta = 200, num_threads = 0, verbose = FALSE)
+
+#wrap_plots(
+#  DimPlot(finalLM, reduction = "umap_harmony", group.by = "PDX", cols = cols_PDX_LM) + ggtitle("LM UMAP"),
+#  DimPlot(finalLMtSNE, reduction = "tsne", group.by = "PDX", cols = cols_PDX_LM) + ggtitle("LM tSNE")
+#)
+```
+Same processing and plotted in UMAP and tSNE
+```{r Calculate clusters}
+#finalLM <- FindNeighbors(finalLM, dims = 1:20, verbose = FALSE)
+#finalLM <- FindClusters(finalLM, resolution = 1.2, verbose = FALSE)
+
+#wrap_plots(
+#  DimPlot(finalLM, reduction = "umap_harmony") + ggtitle("UMAP clustered"),
+#  DimPlot(finalLM, reduction = "umap_harmony", group.by = "PDX", cols = cols_PDX_LM) + ggtitle("UMAP PDX"),
+#  ncol = 2
+#) + plot_layout(guides = "collect")
+```
+Plotting the clustered cells and based on PDX
+```{r Adding Adr/Mes scores}
+##Checking cellstates
+#finalLM <- AddModuleScore(finalLM, features = list(adrn.genes2), name = "ADRN")
+#finalLM <- AddModuleScore(finalLM, features = list(mes.genes2), name = "MES")
+#finalLM <- AddModuleScore(finalLM, features = list(prolif.genes), name = "Prolif")
+#Plotting
+#FeaturePlot(finalLM, features = c("ADRN1", "MES1"), min.cutoff = "q10", max.cutoff = "q90", ncol = 3)
+#VlnPlot(finalLM, features = c("ADRN1", "MES1"), group.by = "seurat_clusters", pt.size = 0)
+```
+Plotting cellstage markers in LM
+```{r Heatmap of Adr/Mes genes}
+#heatmap.finalLM <- ScaleData(finalLM, features = c(adrn.genes2, mes.genes2))
+#DoHeatmap(heatmap.finalLM, features = c(adrn.genes2, mes.genes2), group.by = "seurat_clusters", label = FALSE)
+#DoHeatmap(heatmap.finalLM, features = c(adrn.genes2, mes.genes2), group.by = "PDX", label = FALSE)
+```
+Heatmap av LM med Mes/Adr/prolif markers
+```{r Assigning Adr/Mes identity}
+##Manually assigning Adrenergic, Mesenchymal and proliferative to clusters matching
+#finalLM$cellState <- "Unassigned"
+#finalLM$cellState[finalLM$seurat_clusters %in% c("0", "1", "6", "3", "4", "5")] <- "Adrenergic"
+#finalLM$cellState[finalLM$seurat_clusters %in% c("2", "7")] <- "Mesenchymal"
+
+##Checking against reference genes again
+#avg.exprLM <- AverageExpression(finalLM, assay = "RNA", return.seruat = FALSE)$RNA
+#adrn.scoreLM <- colMeans(avg.exprLM[intersect(adrn.genes2, rownames(avg.exprLM)), ])
+#mes.scoreLM <- colMeans(avg.exprLM[intersect(mes.genes2, rownames(avg.exprLM)), ])
+#plot(adrn.scoreLM, mes.scoreLM, x.lab = "Adrenergic score", y.lab = "Mesenchymal score")
+
+#DotPlot(finalLM, features = c("PHOX2B","PRRX1","MKI67"), group.by = "cellState")
+#DimPlot(finalLM, reduction = "umap_harmony", group.by = "cellState", label = TRUE, pt.size = 0.5) + NoLegend()
+```
+
+```{r Heatmap of cluster genes}
+#saveRDS(finalLM, file = "SeuratObject_finalLM.rds")
+#finalLM <- readRDS("SeuratObject_finalLM.rds")
+##Finding cluster markers and plotting in heatmap
+#clusterMarkers <- FindAllMarkers(finalLM)
+#clusterMarkers %>% 
+#  group_by(cluster) %>%
+#  dplyr::filter(p_val_adj < 0.05) %>%
+#  slice_head(n=10) %>%
+#  ungroup() -> top10Cluster
+#clusterHeatmap <- ScaleData(finalLM, features = top10Cluster$gene)
+#DoHeatmap(clusterHeatmap, features = top10Cluster$gene)
+#rm(clusterHeatmap)
+```
+Top10 genes/cluster heatmap.
+```{r DE Adrenergic vs Mesenchymal i LM data}
+#Idents(finalLM) <- "cellState"
+#AdrMesLM.markers <- FindMarkers(finalLM, ident.1 = "Adrenergic", ident.2 = "Mesenchymal", verbose = FALSE)
+#uppGenesAdrMes <- AdrMesLM.markers$gene[which(AdrMesLM.markers$p_val_adj < 0.05 & AdrMesLM.markers$avg_log2FC > 0)]
+#downGenesAdrMes <- AdrMesLM.markers$gene[which(AdrMesLM.markers$p_val_adj < 0.05 & AdrMesLM.markers$avg_log2FC < 0)]
+#signGenesAdrMes <- c(uppGenesAdrMes, downGenesAdrMes)
+#clusterHeatmap <- ScaleData(finalLM, features = signGenesAdrMes)
+#DoHeatmap(clusterHeatmap, features = signGenesAdrMes, group.by = "PDX", label = FALSE)
+#DoHeatmap(clusterHeatmap, features = signGenesAdrMes, group.by = "seurat_clusters", label = FALSE)
+#rm(clusterHeatmap)
+```
+
+##########################################################################################################
+##Differential expression analysis
+Pseudobulking groups the cells together in the factors we want to compare. Gives more accurate analysis as it is less affected by outlier cells. 
+```{r DE DESeq2 }
+#pseudobulk
+#data.pseudo <- AggregateExpression(data.umap, assays = "RNA", return.seurat = T, group.by = c("type", #"PDX_type"))
+
+#Idents(data.pseudo) <- "type"
+
+#data.de <- FindMarkers(object = data.pseudo, 
+#                            ident.1 = "LM", 
+#                            ident.2 = "PT",
+#                            test.use = "DESeq2",
+#                            min.pct = 0.25)
+
+#saveRDS(data.de, file = "DEObject_Pseudobulk_LM-PT.rds")
+data.de <- readRDS("DEObject_Pseudobulk_LM-PT.rds")
+
+#rm(data.pseudo)
+#gc()
+#head(data.de, n = 60)
+```
+Showing first 60 differentially expressed genes.
+```{r DESeq2 properly}
+#bulked <- AggregateExpression(data.umap, assays(RNA), layer = "counts", group.by = c("type", "PDX", "mouse"), #return.seurat = FALSE)
+#counts <- bulked$RNA
+#colData <- data.frame(type_pdx = colnames(counts))
+#
+#colData$type <- sapply(strsplit(colData$type_pdx, "_"), `[`, 1)
+#colData$type <- sapply(strsplit(colData$type_pdx, "_"), `[`, 2)
+#DefaultAssay(data.umap) <- "RNA"
+data.sce <- as.SingleCellExperiment(data.umap)
+data.sce$model_type <- paste0(data.sce$mouse, "_", data.sce$type)
+data.sce$group_id <- data.sce$type
+data.sce$sample_id <- data.sce$orig.ident
+data.sce$cluster_id <- "NB"
+
+pbulked <- aggregateData(data.sce, assay = "counts", by = c("cluster_id", "model_type"), fun = "sum")
+counts <- assay(pbulked, "NB")
+colData <- as.data.frame(colData(pbulked))
+
+colData$model_id <- colData$mouse
+colData$model_id <- factor(colData$model_id)
+colData$group_id <- factor(colData$group_id)
+
+colData(pbulked)$model_id <- colData$model_id
+colData(pbulked)$group_id <- colData$group_id
+
+colData(pbulked)$model_id <- factor(colData(pbulked)$model_id)
+colData(pbulked)$group_id <- factor(colData(pbulked)$group_id)
+
+DeseqObj <- DESeqDataSetFromMatrix(countData = assay(pbulked), colData = colData(pbulked), design = ~ model_id + group_id)
+
+DeseqObj <- DESeq(DeseqObj)
+DeseqRes <- results(DeseqObj, contrast = c("group_id", "LM", "PT"))
+DeseqRes <- DeseqRes[order(DeseqRes$padj),]
+DeseqRes$gene <- rownames(DeseqRes)
+
+saveRDS(DeseqRes, file = "DeseqRes_PTvsLM.rds")
+DeseqRes <- readRDS("DeseqRes_PTvsLM.rds")
+
+#DefaultAssay(data.umap) <- "SCT"
+
+rm(data.sce, pbulked, colData, counts)
+gc()
+```
+
+```{r Getting sign Gene list}
+upGenesDES <- DeseqRes$gene[which(DeseqRes$padj < 0.01 & DeseqRes$log2FoldChange > 0.5)]
+downGenesDES <- DeseqRes$gene[which(DeseqRes$padj < 0.01 & DeseqRes$log2FoldChange < -0.5)]
+signGenesDES <- c(upGenesDES, downGenesDES)
+
+saveRDS(upGenesDES, file = "List_upGenesDES_LM-PT.rds")
+saveRDS(downGenesDES, file = "List_downGenesDES_LM-PT.rds")
+saveRDS(signGenesDES, file = "List_signGenesDES_LM-PT.rds")
+
+upGenesDES <- readRDS("List_upGenesDES_LM-PT.rds")
+downGenesDES <- readRDS("List_downGenesDES_LM-PT.rds")
+signGenesDES <- readRDS("List_signGenesDES_LM-PT.rds")
+```
+
+
+```{r Calculate significant genes}
+##significant genes
+#data.de$gene <- rownames(data.de)
+#uppGenes <- data.de$gene[which(data.de$p_val_adj < 0.05 & data.de$avg_log2FC > 0.5)]
+#downGenes <- data.de$gene[which(data.de$p_val_adj < 0.05 & data.de$avg_log2FC < -0.5)]
+##signGenes <- data.de$gene[which(data.de$p_val_adj < 0.05)]
+#signGenes <- c(uppGenes, downGenes)
+
+#saveRDS(uppGenes, file = "List_uppGenes_LM-PT.rds")
+#saveRDS(downGenes, file = "List_downGenes_LM-PT.rds")
+#saveRDS(signGenes, file = "List_signGenes_LM-PT.rds")
+
+uppGenes <- readRDS("List_uppGenes_LM-PT.rds")
+downGenes <- readRDS("List_downGenes_LM-PT.rds")
+signGenes <- readRDS("List_signGenes_LM-PT.rds")
+
+#print(length(data.de$gene[which(data.de$p_val < 0.05)]))
+#print(length(signGenes))
+#print(length(uppGenes))
+#print(length(downGenes))
+```
+Number of significantly expressed genes after setting cutoff at 0.05
+```{r DE MAST Random intercepts (Crashes)}
+#Using MAST and random intercepts
+#library(MAST)
+#exprMatr <- GetAssayData(data.umap, assay = "RNA", layer = "data")
+#exprMatr <- as.matrix(exprMatr)
+#cData <- data.umap@meta.data
+#cData <- cData[, c("type", "PDX", "orig.ident", "nCount_RNA")]
+#cData$type <- factor(cData$type)
+#cData$PDX <- factor(cData$PDX)
+#cData$orig.ident <- factor(cData$orig.ident)
+#cData$log_umi <- log10(cData$nCount_RNA + 1)
+#fData <- data.frame(gene_id <- rownames(exprMatr), row.names <- rownames(exprMatr))
+#Forming sca object for MAST 
+#scaMAST <- FromMatrix(exprsArray = exprMatr, cData = cData, fData = fData)
+
+#zlm_fit <- zlm(formula = ~ type + log_umi + (1 | PDX),
+#               sca = scaMAST,
+#               method = "glmer",
+#               ebayes = FALSE)
+#summary_fit <- summary(zlm_fit, doLRT = "typeLM")
+#lrt <- summary_fit$datatable
+#de_resultsMAST <- lrt[lrt$component == "H" & lrt$contrast == "typeLM", ]
+#de_resultsMAST$FDR <- p.adjust(de_resultsMAST$`Pr(>Chisq)`, method = "fdr")
+#de_resultsMAST <- de_resultsMAST[order(de_results$FDR), ]
+#head(de_resultMast, n = 40)
+
+#Skapa lista av significanta gener
+```
+
+```{r DE DESeq2 Adr vs AdrLM and Mes vs Mes LM (not needed)}
+#Doing once for adrenergic and once for mesenchymal
+#pseudo_type <- AggregateExpression(data.umap, assays = "RNA", return.seurat = TRUE, group.by = c("type_state", "PDX_type", #"type_mouse"))
+#Idents(pseudo_type) <- "type_state"
+
+
+#Adr.de <- FindMarkers(object = pseudo_type,
+#                      ident.1 = "LM-Adrenergic",
+#                      ident.2 = "PT-Adrenergic",
+#                      test.use = "DESeq2")
+#Mes.de <- FindMarkers(object = pseudo_type,
+#                      ident.1 = "LM-Mesenchymal",
+#                      ident.2 = "PT-Mesenchymal",
+#                      test.use = "DESeq2")
+#head(Adr.de, n = 20)
+#head(Mes.de, n = 20)
+
+#significant genes Adr
+#Adr.de$gene <- rownames(Adr.de)
+#uppGenesAdr <- Adr.de$gene[which(Adr.de$p_val_adj < 0.05 & Adr.de$avg_log2FC > 0)]
+#downGenesAdr <- Adr.de$gene[which(Adr.de$p_val_adj < 0.05 & Adr.de$avg_log2FC < 0)]
+#signGenesAdr <- c(uppGenesAdr, downGenesAdr)
+#print(length(Adr.de$gene[which(Adr.de$p_val < 0.05)]))
+#print(length(signGenesAdr))
+#print(length(uppGenesAdr))
+#print(length(downGenesAdr))
+
+#significant genes Mes
+#Mes.de$gene <- rownames(Mes.de)
+#uppGenesMes <- Mes.de$gene[which(Mes.de$p_val_adj < 0.05 & Mes.de$avg_log2FC > 0)]
+#downGenesMes <- Mes.de$gene[which(Mes.de$p_val_adj < 0.05 & Mes.de$avg_log2FC < 0)]
+#signGenesMes <- c(uppGenesMes, downGenesMes)
+#print(length(Mes.de$gene[which(Mes.de$p_val < 0.05)]))
+#print(length(signGenesMes))
+#print(length(uppGenesMes))
+#print(length(downGenesMes))
+
+```
+
+##Visulising significant genes
+```{r Vlnplot of some genes}
+# generate violin plot
+data.umap$type <- factor(x = data.umap$type, levels = c("PT", "LM"))
+Idents(data.umap) <- "type"
+#VlnPlot(data.umap, features = signGenes[1:8], idents = c("PT", "LM"), group.by = "type", ncol = 4) 
+#VlnPlot(data.umap, features = signGenes[1:8], idents = c("PT", "LM"), group.by = "PDX_type", ncol = 4)
+```
+Showing expression levels in 8 most significant genes in all cells, grouped by tumor type, and mouse. 
+```{r Featureplot of some genes}
+#Featureplot
+#FeaturePlot(data.umap, features = signGenes[1:4])
+#FeaturePlot(data.umap, features = signGenes[5:8])
+#FeaturePlot(data.umap, features = signGenes[9:12])
+```
+Showing cells expression of significant genes in UMAP projection 
+```{r Dotplot sign genes}
+Fig3b <- DotPlot(data.umap, features = signGenesDES, group.by = "PDX_type") + RotatedAxis()
+
+saveRDS(Fig3b, file = "Fig3b.rds")
+```
+
+```{r Heatmap sign genes}
+#data.doheat <- ScaleData(data.umap, features = signGenesDES)
+#DoHeatmap(data.doheat, features = signGenesDES, group.by = "type", group.colors = cols_type)
+#DoHeatmap(data.doheat, features = signGenesDES, group.by = "PDX_type", group.colors = cols_PDX_type, label = #FALSE)
+#DoMultiBarHeatmap(data.doheat, features = signGenes[40], layer = "scale.data", group.by = "type", additional.group.by = "PDX")
+#rm(data.doheat)
+```
+Shows heatmap of most significant genes. (Show less or more genes?)
+```{r Volcanoplot}
+#Volcanoplot
+volcplot.de <- data.de %>%
+  mutate(gene = rownames(data.de),
+         significance = case_when(
+           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
+           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
+           TRUE ~ "Not significant"
+         ))
+top_genes <- volcplot.de %>%
+  arrange(p_val_adj) %>%
+  dplyr::slice(1:20)
+
+ggplot(volcplot.de, aes(x = avg_log2FC, y = -log10(p_val_adj), color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Upregulated" = "#E6550D")) +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "PT-LM: Differentially Expressed Genes",
+       x = "Average log2 Fold Change",
+       y = "-log10 Adjusted P-value")
+rm(volcplot.de, top_genes)
+```
+Volcanoplot showing expression against significance, cutoffs at 0.5(SD) and 0.05 significant. Top 20 most significant genes labeled.
+```{r Volcanoplot new gene list}
+#Volcanoplot
+#volcplot.de <- DeseqRes %>%
+#  mutate(gene = rownames(DeseqRes),
+#         significance = case_when(
+#           log2FoldChange > 0.5 & padj < 0.05 ~ "Upregulated",
+#           log2FoldChange < -0.5 & padj < 0.05 ~ "Downregulated",
+#           TRUE ~ "Not significant"
+#         ))
+Volcano.Deseq <- data.frame(gene = rownames(DeseqRes), log2FoldChange = DeseqRes$log2FoldChange, padj = DeseqRes$padj, significance = ifelse(DeseqRes$log2FoldChange > 0.5 & DeseqRes$padj < 0.01, "Upregulated", ifelse(DeseqRes$log2FoldChange < -0.5 & DeseqRes$padj < 0.01, "Downregulated", "Not significant")))
+
+top_genes <- Volcano.Deseq %>%
+  arrange(padj) %>%
+  dplyr::slice(1:20)
+
+Fig3a <- ggplot(Volcano.Deseq, aes(x = log2FoldChange, y = -log10(padj), color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Upregulated" = "#E6550D")) +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "PT-LM: Differentially Expressed Genes",
+       x = "Average log2 Fold Change",
+       y = "-log10 Adjusted P-value")
+
+Fig3a
+
+rm(volcplot.de, top_genes)
+
+```
+
+```{r clustered heatmap sign genes}
+#data.heatmap <- subset(data.umap, features = signGenesDES)
+
+#pseudo$cluster <- unlist(lapply(split(pseudo, pseudo[["PDX_type"]]), function(df) {
+#  n <- nrow(df)
+#  paste0(df[["PDX_type"]][1], "_", ceiling(seq_len(n) / 100))}))
+#data.heatmap$pseudocluster <- pseudo$cluster
+
+##Create annotation dataframes
+#avg_exp <- AggregateExpression(data.heatmap, group.by = "pseudocluster", assays = "RNA", slot = "data")$RNA
+#annotations_df <- data.frame(CellType = sub("-\\d+$", "", colnames(avg_exp)), row.names = colnames(avg_exp))
+#splitcelltype <- strsplit(annotations_df$CellType, " ")
+#type <- sapply(splitcelltype, "[", 1)
+#PDX <- sapply(splitcelltype, "[", 2)
+#annotations_df$CellType <- type
+#annotations_df$CellLine <- PDX
+
+
+
+#genes_ann <- rownames(avg_exp)
+#gene_ann_df <- data.frame(Regulation = ifelse(genes_ann %in% uppGenes, "LM", ifelse(genes_ann %in% downGenes, "PT", "Neutral")), row.names = genes_ann, stringsAsFactors = FALSE)
+#data.heatmap <- as.matrix(data.heatmap@assays$RNA@layers$data) #used before adding AggregateExpression
+#col_fun = colorRamp2(c(-0.5, 1, 2.5), c("#FF00FF", "#000000", "#FFFF00"))
+#annotations_col = list(CellType = cols_type, CellLine = cols_PDX, Regulation = c(PT = "#6BAED6", LM = "#E6550D"))
+#col_2 <- colorRampPalette(c("#FF00FF", "black", "yellow"))(101)
+
+#col_fun(seq(-0.25, 2.25, length.out = 101)), , breaks = seq(-0, 2, length.out = 101)
+
+#pheatmap(avg_exp, scale = "row", breaks = seq(-1, 2.5, length.out = 101), annotation_row = gene_ann_df, #annotation_col = annotations_df, show_colnames = F, color = col_2, annotation_colors = annotations_col, #fontsize_row = 6, legend_breaks = c(0, 1, 2), legend_labels = c("0", "1", "2"), annotation_names_row = FALSE, #annotation_names_col = FALSE)
+#rm(data.heatmap, pseudo, avg_exp, annotations_df, col_fun, annotations_col)
+```
+Clustered heatmap showing how celltype correspond to generic clustering. Grouped inside type, for 100 cells in each.
+```{r Clustered heatmap of DE genes with ComplexHeatmap}
+clusterHeatmap <- ScaleData(data.umap, features = signGenesDES)
+heatmapSer <- subset(clusterHeatmap, features = signGenesDES)
+heatmapMatr <- GetAssayData(heatmapSer, assay = "RNA", layer = "scale.data")
+heatmapMatr <- heatmapMatr[order(factor(rownames(heatmapMatr), levels = signGenesDES)), ]
+
+options(expressions = 500000) #Because it is very very nested, gives error
+#dend <- as.dendrogram(hclust(dist(t(heatmapMatr))))
+#dend <- collapse_branch(dend, tol = 0.5)
+#dend %>% collapse_branch(tol = 20) %>% ladderize %>% hang.dendrogram(hang = 0)
+#dend <- cut(dend, h = 10)
+#plot(dend, main = "please")
+
+heatmapAnn <- HeatmapAnnotation(Cluster = heatmapSer$seurat_clusters, PDX = heatmapSer$PDX, Location = heatmapSer$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+heatmapAnnR <- rowAnnotation(Signature = ifelse(rownames(heatmapMatr) %in% upGenesDES, "LM", "PT"), show_legend = FALSE, col = list(Signature = cols_type), annotation_label = c(" "))
+
+
+h <- Heatmap(heatmapMatr, name = "clusterHeatmap", cluster_rows = TRUE, cluster_columns = TRUE, show_column_dend = TRUE, show_column_names = FALSE, show_row_dend = TRUE , top_annotation = heatmapAnn, left_annotation = heatmapAnnR, col = col_fun, use_raster = FALSE, column_title = "Clustered heatmap", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6))
+
+matrixLGND <- Legend(col_fun = col_fun, title = "Expression")
+clusterLGND <- Legend(at = 0:10, title = "Clusters", legend_gp = gpar(fill = cols_clust))
+cellLineLGND <- Legend(labels = c("LU-NB-1", "LU-NB-2", "LU-NB-3"), title = "PDX", legend_gp = gpar(fill = cols_PDX))
+typeLGND <- Legend(labels = c("PT", "LM"), title = "Tumor type", legend_gp = gpar(fill = cols_type))
+GeneSignLGND <- Legend(labels = c("PT", "LM"), title = "Gene signature", legend_gp = gpar(fill = cols_type))
+LGNDs <- packLegend(matrixLGND, clusterLGND, cellLineLGND, typeLGND, GeneSignLGND)
+
+Fig3e <- draw(h, annotation_legend_list = LGNDs)
+
+saveRDS(Fig3e, file = "Fig3e.rds")
+Fig3e <- readRDS("Fig3e.rds")
+
+rm(h, heatmapMatr, heatmapAnn, heatmapAnnR, matrixLGND, clusterLGND, cellLineLGND, GeneSignLGND, LGNDs, heatmapSer, clusterHeatmap)
+```
+
+```{r Not working}
+#annotations_df2 <- data.frame(celltype = data.heatmap@meta.data$type, row.names = colnames(data.heatmap))
+#matrixHeatmap <- as.matrix(data.heatmap@assays$RNA@layers$data)
+#colnames(matrixHeatmap) <- colnames(data.heatmap)
+#rownames(matrixHeatmap) <- rownames(data.heatmap)
+#pheatmap(matrixHeatmap, scale = "row", breaks = seq(-3, 3, length.out = 101), annotation_col = annotations_df2, #show_colnames = F, show_rownames = TRUE, color = col_fun(seq(-3, 3, length.out = 101)), annotation_colors = #annotations_col, fontsize_row = 6)
+```
+
+
+```{r Corrplot}
+data_mat <- GetAssayData(data.umap, assay = "RNA", layer = "data")
+data_mat <- data_mat[signGenesDES, , drop = FALSE]
+data_matt <- t(as.matrix(data_mat))
+corrProb <- cor(data_matt, method = "spearman", use = "complete.obs") # creates matrix of p-values for correlation between the significant genes
+
+#gene_colors <- ifelse(colnames(corrProb) %in% uppGenes, "orange", "green") # Trying to color the text with HTML but did not work.
+#names(gene_colors) <- colnames(corrProb)
+#axis_labels <- paste0( "<span style='color:", gene_colors, "'>", colnames(corrProb), "</span>")
+#names(axis_labels) <- colnames(corrProb)
+
+#p_corr <- ggcorrplot(corrProb, hc.order = TRUE, outline.col = "white")
+#Trying to use ggplot to combine plots
+#ann_genes <- rownames(corrProb)
+
+#df_ann <- data.frame(gene = ann_genes, regulation = ifelse(ann_genes %in% upGenesDES, "Up", ifelse(ann_genes %in% downGenesDES, "Down", NA)), stringsAsFactors = FALSE)
+
+#hc_method <- "complete"    #Trying to copy hc.order but did not work right...
+#dist_mat <- as.dist(1 - corrProb)  
+#hc <- hclust(dist_mat, method = hc_method)
+#corr_reordered <- corrProb[hc$order, hc$order]
+#gene_order <- colnames(corr_reordered)
+
+#Creating a seperate annotaionsbar with genes up or downregulated to paste on top
+#df_ann$gene <- factor(df_ann$gene, levels = c("GSTT2B", "TRIM73", "NDUFA3", "PET100", "C4orf48", "ALDOA", "PET117", "NUDT3", "PABPN1", "SORD", "CEP63", "ASPM", "FKBP2", "LINC-PINT", "SMAD6", "SPRY3", "ARHGAP39", "MSTO1", "FAM163B", "CHN2", "RHOXF1", "MATR3", "SIK1", "OOEP", "DNLZ", "SNHG31", "B3GALT1", "GGPS1", "TIMM23B", "CBS", "U2AF1", "SCHIP1", "POMK", "ZBTB18", "CUL4B", "ID2", "PDZRN3"))
+#p_ann <- ggplot(df_ann, aes(y = gene, x= 1, fill = regulation)) +
+#  geom_tile() +
+#  geom_text(aes(label = gene), color = "black", size = 3) +
+#  scale_fill_manual(values = c(Up = "#E6550D", Down = "#6BAED6")) +
+#  theme_void() +
+#  theme(legend.position = "top", plot.margin = margin(0, 5, 0, 5))
+
+#Printing plots
+#p_corr
+#p_ann
+
+#rm(data_mat, data_matt, corrProb, p_corr, ann_genes, df_ann, p_ann)
+```
+
+```{r Corrplot by Complex heatmap}
+
+corrProbAnn <- HeatmapAnnotation(Signature = ifelse(colnames(corrProb) %in% upGenesDES, "LM", "PT"), show_legend = FALSE, col = list(Signature = cols_type), annotation_label = c(" "))
+corrProbAnnR <- rowAnnotation(Signature = ifelse(rownames(corrProb) %in% upGenesDES, "LM", "PT"), show_legend = TRUE, col = list(Signature = cols_type), annotation_label = c(" "))
+corr_col <- colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+
+h <- Heatmap(corrProb, name = "Correlation", clustering_distance_rows = "spearman", clustering_distance_columns = "spearman", cluster_rows = TRUE, cluster_columns = TRUE, show_column_dend = TRUE, col = corr_col, show_column_names = TRUE, show_row_dend = TRUE , top_annotation = corrProbAnn, left_annotation = corrProbAnnR, show_heatmap_legend = TRUE, row_names_side = "right", column_dend_side = "top", column_names_rot = 45, row_gap = unit(1, "mm"), column_gap = unit(1, "mm"), row_dend_width = unit(2, "cm"), column_dend_height = unit(2, "cm"))
+
+Fig3d <- draw(h)
+
+Fig3d
+
+saveRDS(Fig3d, file = "Fig3d.rds")
+```
+
+Clustering genes correlation and plotting in heatmap
+
+###################
+```{r MAST stuff (not done)}
+##MAST:
+#Dotplot
+#DoHeatMap
+#pheatmap
+#Volcanoplot
+```
+
+```{r ADR and MES genes (not needed)}
+###Mesenchymal and Adrenergic:
+##Dotplot
+#DotPlot(data.umap, features = signGenesAdr[1:60], group.by = "type_state") + RotatedAxis()
+#DotPlot(data.umap, features = signGenesMes[1:60], group.by = "type_state") + RotatedAxis()
+##DoHeatMap
+#data.doheat <- ScaleData(data.umap, features = signGenesAdr)
+#DoHeatmap(data.doheat, features = signGenesAdr[1:60], group.by = "type_state", group.colors = cols_type)
+#rm(data.doheat)
+#data.doheat <- ScaleData(data.umap, features = signGenesMes)
+#DoHeatmap(data.doheat, features = signGenesMes[1:60], group.by = "type_state", group.colors = cols_type)
+#rm(data.doheat)
+##pheatmap (kanske senare)
+##Volcanoplot
+##Adrenergic
+#volcplot.de <- Adr.de %>%
+#  mutate(gene = rownames(Adr.de),
+#         significance = case_when(
+#           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
+#           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
+#           TRUE ~ "Not significant"
+#         ))
+#top_genes <- volcplot.de %>%
+#  arrange(p_val_adj) %>%
+#  dplyr::slice(1:20)
+
+#ggplot(volcplot.de, aes(x = avg_log2FC, y = -log10(p_val_adj), color = significance)) +
+#  geom_point(alpha = 0.5) +
+#  scale_color_manual(values = c("Downregulated" = "#0072B2", #"#00AFBB"
+#                                "Not significant" = "grey",
+#                                "Upregulated" = "#bb0c00")) +
+#  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+#  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+#  geom_point(size = 1) +
+#  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
+#  theme_minimal() +
+#  labs(title = "Only adrenergic, PT vs LM: Differentially Expressed Genes",
+#       x = "Average log2 Fold Change",
+#       y = "-log10 Adjusted P-value")
+#rm(volcplot.de, top_genes)
+##Mesenchymal
+#volcplot.de <- Mes.de %>%
+#  mutate(gene = rownames(Mes.de),
+#         significance = case_when(
+#           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
+#           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
+#           TRUE ~ "Not significant"
+#         ))
+#top_genes <- volcplot.de %>%
+#  arrange(p_val_adj) %>%
+#  dplyr::slice(1:20)#
+
+#ggplot(volcplot.de, aes(x = avg_log2FC, y = -log10(p_val_adj), color = significance)) +
+#  geom_point(alpha = 0.5) +
+#  scale_color_manual(values = c("Downregulated" = "#0072B2", #"#00AFBB"
+#                                "Not significant" = "grey",
+#                                "Upregulated" = "#bb0c00")) +
+#  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+#  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+#  geom_point(size = 1) +
+#  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
+#  theme_minimal() +
+#  labs(title = "Only Mesenchymal, PT vs LM: Differentially Expressed Genes",
+#       x = "Average log2 Fold Change",
+#       y = "-log10 Adjusted P-value")
+#rm(volcplot.de, top_genes)
+```
+Samma plots för DE gener från Adrenergic och Mesenchymal
+###########################################################################################################
+##Gene set enrichment analysis
+Visualizing biological pathways uppregulated
+```{r GO enrichment}
+GO_enrich_Up <- enrichGO(gene = upGenesDES, OrgDb = 'org.Hs.eg.db', ont = "BP", keyType = "SYMBOL")
+GO_enrich_Down <- enrichGO(gene = downGenesDES, OrgDb = 'org.Hs.eg.db', ont = "BP", keyType = "SYMBOL")
+GO_Bar_Up <- barplot(GO_enrich_Up, drop = TRUE, showCategory = 20, title = "GO Upregulated", font.size = 8)
+GO_Bar_Down <- barplot(GO_enrich_Down, drop = TRUE, showCategory = 20, title = "GO Downregulated", font.size = 8)
+
+(GO_Bar_Up | GO_Bar_Down) +  plot_layout(guides = "collect")
+```
+
+Gene ontology enrichment analysis (Biological process)
+```{r Grouped GO enrichment}
+simplified_GO_enrich_Down <- simplify(GO_enrich_Down, cutoff = 0.7, by = "p.adjust", select_fun = min, measure = "Wang")
+barplot(simplified_GO_enrich_Down, drop = TRUE, showCategory = 10, title = "GO Downregulated Grouped")
+```
+Grouping pathways
+
+```{r KEGG enrichment}
+#KEGG pathway enrichment analysis
+uppGenesEntrez <- mapIds(org.Hs.eg.db, keys = upGenesDES, column = "ENTREZID", keytype = "SYMBOL", multiVals = "first")
+downGenesEntrez <- mapIds(org.Hs.eg.db, keys = downGenesDES, column = "ENTREZID", keytype = "SYMBOL", multiVals = "first")
+signGenesEntrez <- mapIds(org.Hs.eg.db, keys = signGenesDES, column = "ENTREZID", keytype = "SYMBOL", multiVals = "first")
+KEGG_enrich_Up <- enrichKEGG(gene = uppGenesEntrez, organism = 'human', pvalueCutoff = 0.05, keyType = "ncbi-geneid")
+KEGG_enrich_Down <- enrichKEGG(gene = downGenesEntrez, organism = 'human', pvalueCutoff = 0.05, keyType = "ncbi-geneid")
+KEGG_Bar_Up <- barplot(KEGG_enrich_Up, drop = TRUE, showCategory = 20, title = "KEGG Upregulated", font.size = 8)
+KEGG_Bar_Down <- barplot(KEGG_enrich_Down, drop = TRUE, showCategory = 20, title = "KEGG Downregulated", font.size = 8)
+(KEGG_Bar_Up | KEGG_Bar_Down) +  plot_layout(guides = "collect")
+```
+KEGG enrichment analysis (Pathways)
+
+```{r NCG enrichment (no results)}
+NCG_enrich_Up <- enrichNCG(gene = uppGenesEntrez, pvalueCutoff = 0.05, pAdjustMethod = "BH", minGSSize = 10, maxGSSize = 500)
+NCG_enrich_Down <- enrichNCG(gene = downGenesEntrez, pvalueCutoff = 0.05, pAdjustMethod = "BH", minGSSize = 10, maxGSSize = 500)
+NCG_Bar_Down <- barplot(NCG_enrich_Down, drop = TRUE, showCategory = 20, title = "NCG Enrichment", font.size = 8)
+NCG_Bar_Up <- barplot(NCG_enrich_Up, drop = TRUE, showCategory = 20, title = "NCG Enrichment", font.size = 8)
+(NCG_Bar_Up | NCG_Bar_Down) +  plot_layout(guides = "collect")
+```
+Network of cancer gene enrichment analysis(comparing to a library of known cancer genes and their expression and function)
+
+```{r KEGG GSEA}
+geneList <- DeseqRes$log2FoldChange # skapa lista med gener och deras värden
+names(geneList) <- DeseqRes$gene
+gene.df <- bitr(names(geneList), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db) #översätter till entrez
+
+geneList <- geneList[gene.df$SYMBOL]
+names(geneList) <- gene.df$ENTREZID #ny lista med samma värden men entrez id istället
+geneList <- sort(geneList, decreasing = TRUE) #sorterar listan
+
+gseKegg <- gseKEGG(geneList = geneList, organism = "hsa", pvalueCutoff = 0.05, verbose = FALSE) #enkel gseKEGG
+gse_Plot_KEGG <- dotplot(gseKegg, showCategory = 10, split=".sign", title = "GSEA KEGG pathways")
+```
+gseKEGG, väger in värdena, inte bara lista av signifikanta gener.
+
+```{r GO GSEA dotplot}
+gseGo <- gseGO(geneList = geneList, OrgDb = org.Hs.eg.db, keyType = "ENTREZID", ont = "BP", pvalueCutoff = 0.05, verbose = FALSE)
+gse_Plot_GO <- dotplot(gseGo, showCategory = 10, split=".sign", title = "GSEA GO pathways")
+(gse_Plot_GO | gse_Plot_KEGG) +  plot_layout(guides = "collect")
+```
+gseGO, kombination, gse fast med GO library
+```{r Same but grouped}
+simplified_gseGO <- simplify(gseGo, cutoff = 0.7, by = "p.adjust", select_fun = min, measure = "Wang")
+simplified_Plot_gseGO <- dotplot(simplified_gseGO, showCategory = 10, split=".sign", title = "GSEA GO pathways grouped")
+(simplified_Plot_gseGO | gse_Plot_KEGG) +  plot_layout(guides = "collect")
+```
+With simplified
+
+```{r KEGG and GO GSEA Barplot}
+dfGO <- gseGo@result
+dfGO <- dfGO[dfGO$p.adjust < 0.05, ]
+# Top 10 up and down
+df_mainGO <- rbind(head(dfGO[order(-dfGO$NES), ], 10), head(dfGO[order(dfGO$NES), ], 10))
+df_mainGO$Direction <- ifelse(df_mainGO$NES > 0, "Up", "Down")
+
+dfKEGG <- gseKegg@result
+dfKEGG <- dfKEGG[dfKEGG$p.adjust < 0.05, ]
+# Top 10 up and down
+df_mainKEGG <- rbind(head(dfKEGG[order(-dfKEGG$NES), ], 10), head(dfKEGG[order(dfKEGG$NES), ], 10))
+df_mainKEGG$Direction <- ifelse(df_mainKEGG$NES > 0, "Up", "Down")
+
+NES_Bar_GO <- ggplot(df_mainGO, aes(x = NES, y = reorder(Description, NES), fill = p.adjust)) +
+  geom_col(width = 0.8) +
+  labs(x = "Normalized Enrichment Score (NES)", y = NULL, title = "GO GSEA") +
+  scale_fill_gradient(low  = "red", high = "blue", name = "p.adjust") +
+  theme_minimal(base_size = 12) +
+  theme(legend.title = element_blank(), plot.title = element_text(face = "bold")
+  )
+NES_Bar_KEGG <- ggplot(df_mainKEGG, aes(x = NES, y = reorder(Description, NES), fill = p.adjust)) +
+  geom_col(width = 0.8) +
+  labs(x = "Normalized Enrichment Score (NES)", y = NULL, title = "KEGG GSEA") +
+  scale_fill_gradient(low  = "red", high = "blue", name = "p.adjust") +
+  theme_minimal(base_size = 12) +
+  theme(legend.title = element_blank(), plot.title = element_text(face = "bold")
+  )
+
+(NES_Bar_GO | NES_Bar_KEGG) +  plot_layout(guides = "collect")
+Fig4a <- NES_Bar_KEGG
+
+saveRDS(Fig4a, file = "Fig4a.rds")
+```
+
+```{r Barplot with p.adjust as length}
+dfKEGG <- gseKegg@result
+dfKEGG <- dfKEGG[dfKEGG$p.adjust < 0.05, ]
+# Top 10 up and down
+df_mainKEGG <- head(dfKEGG[order(dfKEGG$p.adjust), ], 10)
+df_mainKEGG$Direction <- ifelse(df_mainKEGG$NES > 0, "Up", "Down")
+
+NES_Bar_KEGG <- ggplot(df_mainKEGG, aes(x = -log(p.adjust), y = reorder(Description, -p.adjust), fill = NES)) +
+  geom_col(width = 0.8) +
+  labs(x = "-log 10 Adjusted P-value", y = NULL, title = "KEGG GSEA") +
+  scale_fill_gradient(low  = "blue", high = "red", name = "NES") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold")
+  )
+NES_Bar_KEGG
+```
+
+Barplot instead of dotplot, less variables, but still NES and p.adjust
+```{r Again but grouped}
+dfGOsimp <- simplified_gseGO@result
+dfGOsimp <- dfGOsimp[dfGOsimp$p.adjust < 0.05, ]
+# Top 10 up and down
+df_mainGOsimp <- rbind(head(dfGOsimp[order(-dfGOsimp$NES), ], 10), head(dfGOsimp[order(dfGOsimp$NES), ], 10))
+df_mainGOsimp$Direction <- ifelse(df_mainGOsimp$NES > 0, "Up", "Down")
+
+simplified_NES_Bar_GO <- ggplot(df_mainGOsimp, aes(x = NES, y = reorder(Description, NES), fill = p.adjust)) +
+  geom_col(width = 0.8) +
+  labs(x = "Normalized Enrichment Score (NES)", y = NULL, title = "GO GSEA grouped") +
+  scale_fill_gradient(low  = "red", high = "blue", name = "p.adjust") +
+  theme_minimal(base_size = 12) +
+  theme(legend.title = element_blank(), plot.title = element_text(face = "bold")
+  )
+(simplified_NES_Bar_GO | NES_Bar_KEGG) +  plot_layout(guides = "collect")
+```
+
+```{r Pathview (stemcell signaling one)}
+library(pathview)
+
+# Plot specific KEGG pathways (with fold change) 
+## pathway.id : KEGG pathway identifier
+pathview(gene.data = geneList, pathway.id = "04550", species = "human") 
+```
+Can plot specific pathways and foldchange for genes involved.
+```{r GO enrichment cellular compartment (no result)}
+#Checking which cellular compartment the corresponding protein is aktive in
+compartmentGOUp <- enrichGO(gene = upGenesDES, OrgDb = 'org.Hs.eg.db', ont = "CC", keyType = "SYMBOL")
+compartmentGODown <- enrichGO(gene = downGenesDES, OrgDb = 'org.Hs.eg.db', ont = "CC", keyType = "SYMBOL")
+barplot(compartmentGOUp, drop = TRUE, showCategory = 20, title = "GO Upregulated Cellular Compartment", font.size = 8)
+barplot(compartmentGODown, drop = TRUE, showCategory = 20, title = "GO Downregulated Cellular Compartment", font.size = 8)
+```
+Ett sätt att testa vilka cellular components våra gener är involverade i
+```{r GO cellular compartment get.GO.for.genes (not working yet)}
+#get.GO.for.genes(signGenes, bio = T, cel = T, mol = F)
+#get.GO.for.genes(signGenesAdr, bio = T, cel = T, mol = F)
+#get.GO.for.genes(signGenesMes, bio = T, cel = T, mol = F)
+
+```
+
+######
+
+```{r MAST enrichment (not done)}
+#MAST
+#EnrichGO
+#EnrichKEGG
+#EnrichNCG
+#gseGO
+#gseKEGG
+```
+
+```{r Adr/Mes enrichment (not needed)}
+#Mesenchymal and adrenergic
+#Mesenchymal
+#geneListMes <- Mes.de$avg_log2FC # skapa lista med gener och deras värden
+#names(geneListMes) <- Mes.de$gene
+#gene.dfMes <- bitr(names(geneListMes), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db) #översätter till #entrez
+
+#geneListMes <- geneListMes[gene.dfMes$SYMBOL]
+#names(geneListMes) <- gene.df$ENTREZID #ny lista med samma värden men entrez id istället
+#geneListMes <- sort(geneListMes, decreasing = TRUE) #sorterar listan
+##Adrenergic
+#geneListAdr <- Adr.de$avg_log2FC # skapa lista med gener och deras värden
+#names(geneListAdr) <- data.de$gene
+#gene.df <- bitr(names(geneList), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db) #översätter till entrez
+#
+#geneList <- geneList[gene.df$SYMBOL]
+#names(geneList) <- gene.df$ENTREZID #ny lista med samma värden men entrez id istället
+#geneList <- sort(geneList, decreasing = TRUE) #sorterar listan
+
+
+```
+
+##########################################################################################################
+##Identifying genes of interest
+Looking for genes in good pathways and genes in many pathways
+```{r List of sign genes in most pathways + fold change}
+simplified_gseGOX <- setReadable(simplified_gseGO, 'org.Hs.eg.db', 'ENTREZID')
+gseGoX <- setReadable(gseGo, 'org.Hs.eg.db', 'ENTREZID')
+gseKeggX <- setReadable(gseKegg, 'org.Hs.eg.db', 'ENTREZID')
+
+##GO
+le_GO_df <- gseGoX@result %>%
+  select(ID, Description, core_enrichment) %>%
+  filter(!is.na(core_enrichment)) %>%
+  tidyr::separate_rows(core_enrichment, sep = "/") %>%
+  rename(Gene = core_enrichment)
+
+geneListSign <- geneList[names(geneList) %in% signGenesEntrez]
+#Also gene list with symbol, not entrez
+geneListSymbol <- DeseqRes$log2FoldChange # skapa lista med gener och deras värden
+names(geneListSymbol) <- DeseqRes$gene
+geneListSymbol <- geneListSymbol[gene.df$SYMBOL]
+names(geneListSymbol) <- gene.df$SYMBOL
+
+gene_freq_GO <- sort(table(le_GO_df$Gene), decreasing = TRUE)
+gene_freq_GO <- as.data.frame(gene_freq_GO)
+colnames(gene_freq_GO) <- c("Gene", "Pathway count")
+rank_df <- tibble(Gene = names(geneListSymbol), rank_metric = as.numeric(geneListSymbol))
+gene_freq_GO <- gene_freq_GO %>% left_join(rank_df, by = "Gene")
+
+gene_freq_GO <- gene_freq_GO %>% arrange(desc(`Pathway count`), desc(abs(rank_metric)))
+
+#gene_rank_GO <- intersect(names(geneList), le_GO_df$Gene)
+#geneList[gene_rank_GO]
+
+gene_freq_GO_sign <- subset(gene_freq_GO, Gene %in% signGenesDES)
+gene_freq_GO_sign
+
+rm(gene_freq_GO, gene_freq_GO_sign, le_GO_df)
+
+##GO simplified
+le_GO_df <- simplified_gseGOX@result %>%
+  select(ID, Description, core_enrichment) %>%
+  filter(!is.na(core_enrichment)) %>%
+  tidyr::separate_rows(core_enrichment, sep = "/") %>%
+  rename(Gene = core_enrichment)
+
+gene_freq_GO <- sort(table(le_GO_df$Gene), decreasing = TRUE)
+gene_freq_GO <- as.data.frame(gene_freq_GO)
+colnames(gene_freq_GO) <- c("Gene", "Pathway count")
+gene_freq_GO <- gene_freq_GO %>% left_join(rank_df, by = "Gene")
+
+gene_freq_GO <- gene_freq_GO %>% arrange(desc(`Pathway count`), desc(abs(rank_metric)))
+
+gene_freq_GO_sign <- subset(gene_freq_GO, Gene %in% signGenesDES)
+gene_freq_GO_sign
+
+#KEGG
+le_KEGG_df <- gseKeggX@result %>%
+  select(ID, Description, core_enrichment) %>%
+  filter(!is.na(core_enrichment)) %>%
+  tidyr::separate_rows(core_enrichment, sep = "/") %>%
+  rename(Gene = core_enrichment)
+
+gene_freq_KEGG <- sort(table(le_KEGG_df$Gene), decreasing = TRUE)
+gene_freq_KEGG <- as.data.frame(gene_freq_KEGG)
+colnames(gene_freq_KEGG) <- c("Gene", "Pathway count")
+gene_freq_KEGG <- gene_freq_KEGG %>% left_join(rank_df, by = "Gene")
+
+gene_freq_KEGG <- gene_freq_KEGG %>% arrange(desc(`Pathway count`), desc(abs(rank_metric)))
+
+gene_freq_KEGG_sign <- subset(gene_freq_KEGG, Gene %in% signGenesDES)
+gene_freq_KEGG_sign
+```
+Lista över gener, antal pathways inkluderad i och foldChange(rank_metric)
+```{r pathway plot}
+gseaplot2(
+  gseGo,
+  geneSetID = "GO:0006119",
+  title = "Oxidative phosphorylation"
+)
+```
+Plot över generna i en pathway och var de är i vår lista
+```{r taking only significant genes in gsea(not working, not needed)} 
+#Making gseobjects with only significant genes, can not be plotted as pathways only have one gene sometimes
+#gseGoX@result <- gseGoX@result %>%
+#  rowwise() %>%
+#  mutate(
+#    core_enrichment = {
+#      x = .data$core_enrichment
+#      if (is.null(x) || is.na(x)){
+#        NA_character_
+#      } else {
+#        genes <- as.character(x)
+#        genes <- unlist(strsplit(genes, "/"))
+#        genes <- genes[genes %in% signGenes]
+#        if (length(genes) == 0) NA_character_
+#        else paste(genes, collapse = "/")
+#      }
+#    }
+#  ) %>%
+#  ungroup() %>%
+#  filter(!is.na(core_enrichment))
+#
+#gseKeggX@result <- gseKeggX@result %>%
+#  rowwise() %>%
+#  mutate(
+#    core_enrichment = {
+#      x = .data$core_enrichment
+#      if (is.na(x) || is.null(x)){
+#        NA_character_
+#      } else {
+#        genes <- as.character(x)
+#        genes <- unlist(strsplit(genes, "/"))
+#        genes <- genes[genes %in% signGenes]
+#        if (length(genes) == 0) NA_character_
+#        else paste(genes, collapse = "/")
+#      }
+#    }
+#  ) %>%
+#  ungroup() %>%
+#  filter(!is.na(core_enrichment))
+#
+#simplified_gseGOX@result <- simplified_gseGOX@result %>%
+#  rowwise() %>%
+#  mutate(
+#    core_enrichment = {
+#      x = .data$core_enrichment
+#      if (is.na(x) || is.null(x)){
+#        NA_character_
+#      } else {
+#        genes <- as.character(x)
+#        genes <- unlist(strsplit(genes, "/"))
+#        genes <- genes[genes %in% signGenes]
+#        if (length(genes) == 0) NA_character_
+#        else paste(genes, collapse = "/")
+#      }
+#    }
+#  ) %>%
+#  ungroup() %>%
+#  filter(!is.na(core_enrichment))
+#Titta om gen listorna verkligen ligger som genes i core_enrichment???
+```
+Nya objekt med enbart signifikanta gener för plotting
+
+```{r Heatplot of pathways and their genes}
+#heatplot(gseGoX, showCategory = 10, foldChange = geneList)
+heatplot(simplified_gseGOX, showCategory = 10, foldChange = geneList)
+heatplot(gseKeggX, showCategory = 10, foldChange = geneList)
+#heatplot(gseGoX, showCategory = 10, foldChange = geneListSign)
+heatplot(simplified_gseGOX, showCategory = 10, foldChange = geneListSign)
+heatplot(gseKeggX, showCategory = 10, foldChange = geneListSign)
+
+heatplot(gseKeggX, showCategory = c("Signaling pathways regulating pluripotency of stem cells", "Hedgehog signaling pathway", "TGF-beta signaling pathway", "Axon guidance", "Wnt signaling pathway"), foldChange = geneListSign)
+#heatplot(simplified_gseGOX, showCategory = c("negative chemotaxis", "ephrin receptor signaling pathway", "axon guidance", "establishment or maintenance of apical/basal cell polarity", "regulation of small GTPase mediated signal transduction"), foldChange = geneListSign)
+heatplot(gseKeggX, showCategory = c("Signaling pathways regulating pluripotency of stem cells", "TGF-beta signaling pathway"), foldChange = geneList) + scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Fold Change")
+
+Fig4b <- heatplot(gseKeggX, showCategory = c("Cytokine-cytokine receptor interaction", "Pathways in cancer", "PI3K-Akt signaling pathway", "NOD-like receptor signaling pathway", "TNF signaling pathway", "Integrin signaling"), foldChange = geneList) + theme(axis.text.x = element_text(size = 4, lineheight = 0.8), axis.text.y = element_text(size = 6)) + scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Fold Change")
+
+
+Fig4b
+
+saveRDS(Fig4b, file = "Fig4b.rds")
+Fig4b <- readRDS("Fig4b.rds")
+```
+Heatmap showing what genes are in a Pathway and which of these are significant, as well as how strong the change is
+
+
+
+```{r Dotplot of pathway genes}
+#Dotplot that is not working. Plotting all pathways. Also redundant as heatmap plots the same variables in a pleasurable way
+#le_GO_df_sig <- le_GO_df %>% filter(Gene %in% signGenesEntrez)
+#gene_pathway_df <- le_GO_df %>%
+#  left_join(rank_df, by = "Gene")
+
+#ggplot(gene_pathway_df, aes(x = Description, y = Gene, color = rank_metric, size = abs(rank_metric))) +
+#  geom_point() +
+#  scale_color_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+#  labs(x = "Pathway", y = "Gene", color = "Rank metric", size = "|Rank|") +
+#  theme_minimal() +
+#  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Extra dotplot, same as heatplot.
+```{r Interconnected pathways and their genes}
+#Top 20 pathways
+#cnetplot(
+#  gseGoX,
+#  showCategory = 20,
+#  foldChange = geneListSign,
+#  node_label = "all",
+#  fc_threshold = 0.3
+#)
+cnetplot(
+  simplified_gseGOX,
+  showCategory = 40,
+  foldChange = geneListSign,
+  node_label = "all",
+  fc_threshold = 0.3
+)
+Fig4c <- cnetplot(
+  gseKeggX,
+  showCategory = 81,
+  foldChange = geneListSign,
+  node_label = "all",
+  fc_threshold = 0.1
+)+ scale_colour_gradientn(values = c(-2, -1, 2), colours = c("blue", "white", "red"))
+
+saveRDS(Fig4b, file = "Fig4b.rds")
+Fig4b <- readRDS("Fig4b.rds")
+
+Fig4c
+
+```
+#### gsea för MAST och ADR/MES gener
+
+```{r MAST plots (not done/needed)}
+##same plots but for MAST
+```
+
+```{r Adr/Mes plots (not done/needed)}
+##same but for Mes and Adr
+```
+
+```{r Shared genes from different DE (not done or needed)}
+#GenesInCommon <- intersect(signGenes, signGenesMast)
+#GenesAdrShared <- intersect(signGenes, signGenesAdr)
+#GenesMesShared <- intersect(signGenes, signGenesMes) 
+#GenesAdrShared
+#GenesMesShared
+```
+################################ PT och LM scores
+Visualisera vidare
+
+```{r Vlnplots of all significant genes}
+data.umap$PDX_type <- factor(x = data.umap$PDX_type, levels = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "LM LU-NB-1", "LM LU-NB-2", "LM LU-NB-3"))
+data.umap$type_state <- factor(x = data.umap$type_state, levels = c("PT_Adr", "PT_Mes", "LM_Adr", "LM_Mes"))
+#Vlnplot of genes in all data
+#VlnPlot(data.umap, features = upGenesDES, group.by = "type_state", pt.size = 0, stack = TRUE, flip = TRUE, cols #= c(rep("#E6550D", 27))) +
+#        theme(legend.position = "none")
+#VlnPlot(data.umap, features = downGenesDES, group.by = "PDX_type", pt.size = 0, stack = TRUE, flip = TRUE, cols #= c(rep("#6BAED6", 10))) +
+#        theme(legend.position = "none")
+#VlnPlot(data.umap, features = downGenesDES, group.by = "type_state", pt.size = 0, stack = TRUE, flip = TRUE, #cols = c(rep("#6BAED6", 10))) +
+#        theme(legend.position = "none")
+#VlnPlot(data.umap, features = upGenesDES, group.by = "PDX_type", pt.size = 0, stack = TRUE, flip = TRUE, cols = #c(rep("#E6550D", 27))) +
+#        theme(legend.position = "none")
+
+#VlnPlot(data.umap, features = signGenesDES, group.by = "type_state", pt.size = 0, stack = TRUE, flip = TRUE, #cols = c(rep("#E6550D", 27), rep("#6BAED6", 10))) +
+#        theme(legend.position = "none")
+#VlnPlot(data.umap, features = signGenesDES, group.by = "PDX_type", pt.size = 0, stack = TRUE, flip = TRUE, cols #= c(rep("#E6550D", 27), rep("#6BAED6", 10))) +
+#        theme(legend.position = "none")
+Fig3c <- VlnPlot(data.umap, features = signGenesDES, group.by = "seurat_clusters", pt.size = 0, stack = TRUE, flip = TRUE, cols = c(rep("#E6550D", 126), rep("#6BAED6", 55))) +
+        theme(legend.position = "none")+ NoLegend()
+
+DotPlot(data.umap, features = signGenesDES, group.by = "seurat_clusters")
+
+saveRDS(Fig3c, file = "Fig3c.rds")
+
+#VlnPlot(onlyPT, features = upGenesDES, group.by = "seurat_clusters", pt.size = 0, stack = TRUE, flip = TRUE, #cols = c(rep("#E6550D", 126))) + theme(legend.position = "none")
+```
+Vlnplot av alla gener i celllinjer och Adrenerga/Mesenchymala
+```{r Featureplots and heatmap of all significant genes (not needed)}
+#Featureplot of finalLM
+#FeaturePlot(finalLM, features = signGenes)
+#Heatmap av generna i finalLM cluster
+#finalLM.doheat <- ScaleData(finalLM, features = signGenes)
+#DoHeatmap(finalLM.doheat, features = signGenes, group.by = "seurat_clusters")
+#DoHeatmap(finalLM.doheat, features = signGenes, group.by = "PDX")
+#rm(data.doheat)
+```
+Bedömma om dessa gener är bra? Via plotting
+
+```{r Adding LM and PT score + UMAP and Vlnplots}
+#PT signature and LM signature
+#Calculate score for each cell
+data.umap <- AddModuleScore(data.umap, features = list(upGenesDES), name = "LMScore")
+data.umap <- AddModuleScore(data.umap, features = list(downGenesDES), name = "PTScore")
+
+#Featureplot of score
+#FeaturePlot(data.umap, features = c("LMScore1", "PTScore1"), min.cutoff = "q10", max.cutoff = "q90", ncol = 3)
+#Vinplot on cluster/cellstate
+#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "type", pt.size = 0)
+#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "PDX_type", pt.size = 0)
+#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "type_state", pt.size = 0)
+#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "seurat_clusters", pt.size = 0)
+
+#FeatureScatter(data.umap, feature1 = "PTScore1", feature2 = "LMScore1", split.by = "PDX", group.by = "type", cols = cols_type)
+
+#VlnPlot(onlyPT, features = c("LMScore1", "PTScore1"), group.by = "seurat_clusters", pt.size = 0)
+```
+LM och PT score visualiserat
+```{r find cut-off}
+onlyLM <- subset(data.umap, type == "LM")
+LMScoreMean <- mean(onlyLM$LMScore1)
+LMScoreSD <- sd(onlyLM$LMScore1)
+LMcutoff <- LMScoreMean - LMScoreSD
+
+#cells <- c(colnames(onlyPT), colnames(onlyLM))
+#Location <- c(rep("PT", length(colnames(onlyPT))), rep("LM", length(colnames(onlyLM))))
+#Values <- data.umap$LMScore1
+#Values <- as.character(Values)
+
+#LMscoreDF <- data.frame(cells, Location, Values)
+
+```
+Finding 2SD from LM data. For LM profile cut-off
+
+```{r Setting cut-off and assigning identity. + Barplot of percantages}
+LMcells <- WhichCells(data.umap, expression = LMScore1 > LMcutoff)
+PTcells <- WhichCells(data.umap, expression = PTScore1 > 0.1)
+data.umap$signature <- ifelse(colnames(data.umap) %in% LMcells & colnames(data.umap) %in% PTcells, "Both", ifelse(colnames(data.umap) %in% LMcells, "LM", ifelse(colnames(data.umap) %in% PTcells, "PT", "None")))
+onlyPT <- subset(data.umap, type == "PT")
+onlyPT$LMprofile <- ifelse(onlyPT$LMScore1 > LMcutoff, "LM_like", "not_LM_like")
+onlyPT$LMprofileSymb <- ifelse(onlyPT$LMScore1 > LMcutoff, "LM+", "LM-")
+onlyPT1 <- subset(onlyPT, PDX == "LU-NB-1")
+onlyPT2 <- subset(onlyPT, PDX == "LU-NB-2")
+onlyPT3 <- subset(onlyPT, PDX == "LU-NB-3")
+onlyLM <- subset(data.umap, type == "LM")
+
+saveRDS(data.umap, file = "SeuratObject_data.umap_withScores.rds")
+data.umap <- readRDS("SeuratObject_data.umap_withScores.rds")
+
+saveRDS(onlyPT, file = "SeuratObject_onlyPT_withScores.rds")
+onlyPT <- readRDS("SeuratObject_onlyPT_withScores.rds")
+
+#DimPlot(onlyPT, group.by = "signature", cols = c(LM = "#E6550D", PT = "#6BAED6", Both = "#8B00FF", None = "#D3D3D3"), order = c("Both", "LM", "PT", "None")) + ggtitle("PT cells by signature")
+
+
+Fig5b <- DimPlot(onlyPT1, group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-1") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+Fig5c <- DimPlot(onlyPT2, group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-2") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+Fig5d <- DimPlot(onlyPT3, group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+
+Fig5b
+Fig5c
+Fig5d
+
+saveRDS(Fig5b, file = "Fig5b.rds")
+saveRDS(Fig5c, file = "Fig5c.rds")
+saveRDS(Fig5d, file = "Fig5d.rds")
+
+Fig5b <- readRDS("Fig5b.rds")
+Fig5c <- readRDS("Fig5c.rds")
+Fig5d <- readRDS("Fig5d.rds")
+
+
+#FeatureScatter(data.umap, feature1 = "PTScore1", feature2 = "LMScore1", split.by = "PDX", group.by = "signature", cols = c(LM = "#E6550D", PT = "#6BAED6", Both = "#8B00FF", None = "#D3D3D3"))
+
+#FeatureScatter(onlyPT, feature1 = "ADRN1", feature2 = "MES1", split.by = "PDX", group.by = "LMprofile", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"))
+
+#FeatureScatter(onlyPT, feature1 = "ADRN1", feature2 = "MES1", split.by = "seurat_clusters", group.by = "LMprofile", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"))
+
+#VlnPlot(onlyPT, features = c("LMScore1", "PTScore1"), group.by = "PDX", split.by = "cellState", pt.size = 0)
+```
+
+```{r Barplot, percentage of signatures}
+CellLine <- c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "Extra")
+Signature <- c(rep(c("LM"), 3), "Extra")
+Percentage <- c(c(length(WhichCells(onlyPT1, expression = LMprofileSymb == "LM+"))/length(colnames(onlyPT1))), c(length(WhichCells(onlyPT2, expression = LMprofileSymb == "LM+"))/length(colnames(onlyPT2))), c(length(WhichCells(onlyPT3, expression = LMprofileSymb == "LM+"))/length(colnames(onlyPT3))), c(0.025))
+
+barplotData <- data.frame(CellLine, Signature, Percentage)
+
+Fig5a <- ggplot(barplotData, aes(fill=Signature, y=Percentage, x=CellLine)) + 
+  geom_col() + 
+  ggtitle("Percentage cells with LM profile") +
+  scale_fill_manual(values = c("LM" = "#E6550D", "Extra" = "white")) +
+  scale_y_continuous(breaks = seq(0, 0.025, by = 0.005), labels = scales::label_percent(), expand = c(0, 0)) +
+  scale_x_discrete(limits = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "Extra"), labels = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "")) +
+  theme_minimal() +
+  geom_text(aes(label = 100*round(Percentage, 4)), position = position_dodge(width = 1), vjust = -0.5, color = "black", size = 4) +
+  theme(
+  legend.position = "right",
+  legend.title = element_blank(),
+  axis.title.x = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.title.y = element_blank(),
+  axis.line.y = element_line(color = "black", linewidth = 1.5, lineend = "square"),
+  axis.ticks.y = element_line(color = "black", linewidth = 1.5),
+  axis.ticks.length.y = unit(0.2, "cm"),
+  axis.line.x = element_blank(),
+  axis.text.x = element_text(size = 12),
+  axis.text.y = element_text(size = 15),
+  panel.grid = element_blank(),
+  text = element_text(family = "sans", size = 12, color = "black")
+)
+
+Fig5a
+
+saveRDS(Fig5a, file = "Fig5a.rds")
+
+Fig5a <- readRDS("Fig5a.rds")
+```
+
+
+
+```{r DE DESeq 2 in PT LM score vs not LM score}
+#pseudobulk
+#pseudoScore <- AggregateExpression(onlyPT, assays = "RNA", return.seurat = T, group.by = c("PDX", "LMprofile"))
+
+#Idents(pseudoScore) <- "LMscoreCutoff"
+
+#LMScore.de <- FindMarkers(object = pseudoScore, 
+#                            ident.1 = "TRUE", 
+#                            ident.2 = "FALSE",
+#                            test.use = "DESeq2",
+#                            min.pct = 0.25)
+
+#saveRDS(LMScore.de, file = "DEObject_Pseudobulk_LMscoreCutoff.rds")
+LMScore.de <- readRDS("DEObject_Pseudobulk_LMscoreCutoff.rds")
+
+#rm(pseudoScore)
+#gc()
+#head(LMScore.de, n = 60)
+```
+
+```{r DESeq2 with DESeq2 package, LM+ PT cells}
+PT.sce <- as.SingleCellExperiment(onlyPT)
+PT.sce$model_type <- paste0(PT.sce$mouse, "_", PT.sce$LMprofile)
+PT.sce$group_id <- PT.sce$LMprofile
+PT.sce$sample_id <- PT.sce$orig.ident
+PT.sce$cluster_id <- "NB"
+
+PTpbulked <- aggregateData(PT.sce, assay = "counts", by = c("cluster_id", "model_type"), fun = "sum")
+PTcounts <- assay(PTpbulked)
+PTcolData <- as.data.frame(colData(PTpbulked))
+
+PTcolData$model_id <- PTcolData$mouse
+PTcolData$model_id <- factor(PTcolData$model_id)
+PTcolData$group_id <- factor(PTcolData$group_id)
+
+colData(PTpbulked)$model_id <- PTcolData$model_id
+colData(PTpbulked)$group_id <- PTcolData$group_id
+
+colData(PTpbulked)$model_id <- factor(colData(PTpbulked)$model_id)
+colData(PTpbulked)$group_id <- factor(colData(PTpbulked)$group_id)
+
+PTDeseqObj <- DESeqDataSetFromMatrix(countData = assay(PTpbulked), colData = colData(PTpbulked), design = ~ model_id + group_id)
+
+PTDeseqObj <- DESeq(PTDeseqObj)
+PTDeseqRes <- results(PTDeseqObj, contrast = c("group_id", "LM_like", "not_LM_like"))
+PTDeseqRes <- PTDeseqRes[order(PTDeseqRes$padj),]
+PTDeseqRes$gene <- rownames(PTDeseqRes)
+
+saveRDS(PTDeseqRes, file = "PTDeseqRes_PTvsLM.rds")
+
+PTDeseqRes <- readRDS("PTDeseqRes_PTvsLM.rds")
+
+```
+
+```{r Getting sign genes}
+#significant genes
+#LMScore.de$gene <- rownames(LMScore.de)
+#LMscoreUpGenes <- LMScore.de$gene[which(LMScore.de$p_val_adj < 0.05 & LMScore.de$avg_log2FC > 0.5)]
+#LMscoreDownGenes <- LMScore.de$gene[which(LMScore.de$p_val_adj < 0.05 & LMScore.de$avg_log2FC < -0.5)]
+#signGenes <- data.de$gene[which(data.de$p_val_adj < 0.05)]
+#
+#LMscoreUpGenes <- setdiff(LMscoreUpGenes, upGenesDES)
+#LMscoreDownGenes <- setdiff(LMscoreDownGenes, downGenesDES)
+#LMscoreSignGenes <- c(LMscoreUpGenes, LMscoreDownGenes)
+
+#saveRDS(LMscoreUpGenes, file = "List_uppGenes_LMscore.rds")
+#saveRDS(LMscoreDownGenes, file = "List_downGenes_LMscore.rds")
+#saveRDS(LMscoreSignGenes, file = "List_signGenes_LMscore.rds")
+
+LMscoreUpGenes <- readRDS("List_uppGenes_LMscore.rds")
+LMscoreDownGenes <- readRDS("List_downGenes_LMscore.rds")
+LMscoreSignGenes <- readRDS("List_signGenes_LMscore.rds")
+
+#print(length(LMscoreSignGenes))
+#print(length(LMscoreUpGenes))
+#print(length(LMscoreDownGenes))
+```
+
+```{r Getting sign Genes from DESeq2}
+PTupGenesDES <- PTDeseqRes$gene[which(PTDeseqRes$padj < 0.01 & PTDeseqRes$log2FoldChange > 0.5)]
+PTdownGenesDES <- PTDeseqRes$gene[which(PTDeseqRes$padj < 0.01 & PTDeseqRes$log2FoldChange < -0.5)]
+PTsignGenesDES <- c(PTupGenesDES, PTdownGenesDES)
+
+saveRDS(PTupGenesDES, file = "List_PTupGenesDES_LM-PT.rds")
+saveRDS(PTdownGenesDES, file = "List_PTdownGenesDES_LM-PT.rds")
+saveRDS(PTsignGenesDES, file = "List_PTsignGenesDES_LM-PT.rds")
+
+PTupGenesDES <- readRDS("List_PTupGenesDES_LM-PT.rds")
+PTdownGenesDES <- readRDS("List_PTdownGenesDES_LM-PT.rds")
+PTsignGenesDES <- readRDS("List_PTsignGenesDES_LM-PT.rds")
+```
+
+```{r Volcplot of PT LM singature genes}
+#Volcanoplot
+LMscoreVolcplot <- LMScore.de %>%
+  mutate(gene = rownames(LMScore.de),
+         significance = case_when(
+           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
+           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
+           TRUE ~ "Not significant"
+         ))
+top_genes <- LMScore.de %>%
+  arrange(p_val_adj) %>%
+  dplyr::slice(1:6)
+
+ggplot(LMscoreVolcplot, aes(x = avg_log2FC, y = -log10(p_val_adj), color = gene)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Upregulated" = "#E6550D", 
+                                "ASPM" = "#E6550D", "ID2" = "#E6550D", "ZBTB18" = "#E6550D")) +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "LMscore 0.1 cut-off: Differentially Expressed Genes",
+       x = "Average log2 Fold Change",
+       y = "-log10 Adjusted P-value")
+rm(LMscoreVolcplot, top_genes)
+```
+
+```{r Volcplot from DESeq2}
+#Volcanoplot
+PTVolcano.Deseq <- data.frame(gene = rownames(PTDeseqRes), log2FoldChange = PTDeseqRes$log2FoldChange, padj = PTDeseqRes$padj, significance = ifelse(PTDeseqRes$log2FoldChange > 0.5 & PTDeseqRes$padj < 0.01, "Upregulated", ifelse(PTDeseqRes$log2FoldChange < -0.5 & PTDeseqRes$padj < 0.01, "Downregulated", "Not significant")))
+
+PTtop_genes <- PTVolcano.Deseq %>%
+  arrange(padj) %>%
+  dplyr::slice(1:20)
+
+Fig5e <- ggplot(PTVolcano.Deseq, aes(x = log2FoldChange, y = -log10(padj), color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Upregulated" = "#E6550D")) +
+  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = PTtop_genes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "LM+: Differentially Expressed Genes",
+       x = "Average log2 Fold Change",
+       y = "-log10 Adjusted P-value")
+
+Fig5e
+
+saveRDS(Fig5e, "Fig5e.rds")
+
+rm(volcplot.de, top_genes)
+```
+
+```{r gseKEGG of LM signature PT cells}
+LMscoreGeneList <- PTDeseqRes$log2FoldChange # skapa lista med gener och deras värden
+names(LMscoreGeneList) <- PTDeseqRes$gene
+LMscoreGene.df <- bitr(names(LMscoreGeneList), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db) #översätter till entrez
+
+LMscoreGeneList <- LMscoreGeneList[LMscoreGene.df$SYMBOL]
+names(LMscoreGeneList) <- LMscoreGene.df$ENTREZID #ny lista med samma värden men entrez id istället
+LMscoreGeneList <- sort(LMscoreGeneList, decreasing = TRUE) #sorterar listan
+
+LMscoreGseKegg <- gseKEGG(geneList = LMscoreGeneList, organism = "hsa", pvalueCutoff = 0.05, verbose = FALSE) #enkel gseKEGG
+LMscoreGseGoFrst <- gseGO(geneList = LMscoreGeneList, OrgDb = org.Hs.eg.db, keyType = "ENTREZID", ont = "BP", pvalueCutoff = 0.05, verbose = FALSE)
+LMscoreGseGo <- simplify(LMscoreGseGoFrst, cutoff = 0.7, by = "p.adjust", select_fun = min, measure = "Wang")
+
+LMdfGO <- LMscoreGseGo@result
+LMdfGO <- LMdfGO[LMdfGO$p.adjust < 0.05, ]
+# Top 10 up and down
+LMdf_mainGO <- rbind(head(LMdfGO[order(-LMdfGO$NES), ], 10), head(LMdfGO[order(LMdfGO$NES), ], 10))
+LMdf_mainGO$Direction <- ifelse(LMdf_mainGO$NES > 0, "Up", "Down")
+
+LMdfKEGG <- LMscoreGseKegg@result
+LMdfKEGG <- LMdfKEGG[LMdfKEGG$p.adjust < 0.05, ]
+# Top 10 up and down
+LMdf_mainKEGG <- rbind(head(LMdfKEGG[order(-LMdfKEGG$NES), ], 10), head(LMdfKEGG[order(LMdfKEGG$NES), ], 10))
+LMdf_mainKEGG$Direction <- ifelse(LMdf_mainKEGG$NES > 0, "Up", "Down")
+
+LMscoreNES_Bar_GO <- ggplot(LMdf_mainGO, aes(x = NES, y = reorder(Description, NES), fill = p.adjust)) +
+  geom_col(width = 0.8) +
+  labs(x = "Normalized Enrichment Score (NES)", y = NULL, title = "GO GSEA LMscore") +
+  scale_fill_gradient(low  = "red", high = "blue", name = "p.adjust") +
+  theme_minimal(base_size = 12) +
+  theme(legend.title = element_blank(), plot.title = element_text(face = "bold")
+  )
+LMscoreNES_Bar_KEGG <- ggplot(LMdf_mainKEGG, aes(x = NES, y = reorder(Description, NES), fill = p.adjust)) +
+  geom_col(width = 0.8) +
+  labs(x = "Normalized Enrichment Score (NES)", y = NULL, title = "KEGG GSEA LMscore") +
+  scale_fill_gradient(low  = "red", high = "blue", name = "p.adjust") +
+  theme_minimal(base_size = 12) +
+  theme(legend.title = element_blank(), plot.title = element_text(face = "bold")
+  )
+
+(LMscoreNES_Bar_GO | LMscoreNES_Bar_KEGG) +  plot_layout(guides = "collect")
+LMscoreNES_Bar_KEGG
+
+
+```
+
+```{r Pathways on p.adjust}
+LMdfKEGG <- LMscoreGseKegg@result
+LMdfKEGG <- LMdfKEGG[LMdfKEGG$p.adjust < 0.05, ]
+# Top 10 up and down
+LMdf_mainKEGG <- head(LMdfKEGG[order(LMdfKEGG$p.adjust), ], 10)
+LMdf_mainKEGG$Direction <- ifelse(LMdf_mainKEGG$NES > 0, "Up", "Down")
+
+LM_p_Bar_KEGG <- ggplot(LMdf_mainKEGG, aes(x = -log(p.adjust), y = reorder(Description, -p.adjust), fill = NES)) +
+  geom_col(width = 0.8) +
+  labs(x = "-log 10 Adjusted P-value", y = NULL, title = "KEGG GSEA") +
+  scale_fill_gradient(low  = "#FFD4D4", high = "red", name = "NES") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold")
+  )
+Fig5f <- LM_p_Bar_KEGG
+
+saveRDS(Fig5f, file = "Fig5f.rds")
+
+Fig5f
+```
+Pathways från LM score
+```{r cnetPlots of pathways}
+LMscoreGseKeggX <- setReadable(LMscoreGseKegg, 'org.Hs.eg.db', 'ENTREZID')
+LMscoreGseGoX <- setReadable(LMscoreGseGo, 'org.Hs.eg.db', 'ENTREZID')
+
+cnetplot(
+  LMscoreGseKeggX,
+  showCategory = 10,
+  foldChange = LMscoreGeneList,
+  node_label = "all",
+  fc_threshold = 0.5
+)
+cnetplot(
+  LMscoreGseGoX,
+  showCategory = 10,
+  foldChange = LMscoreGeneList,
+  node_label = "all",
+  fc_threshold = 0.5
+)
+```
+
+```{r Trying to find trajectory in umap with singature marked}
+#wrap_plots(
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 1:2),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 3:4),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 5:6),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 7:8),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 9:10),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 11:12),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 13:14),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 15:16),
+#  DimPlot(onlyPT, reduction = "pca", group.by = "signature", dims = 17:18),
+#  ncol = 3
+#) + plot_layout(guides = "collect")
+```
+
+```{r Plots with BM signature as well}
+upGenesBM <- readRDS("List_upGenesBM_BM-PT.rds")
+downGenesBM <- readRDS("List_downGenesBM_BM-PT.rds")
+signGenesBM <- readRDS("List_signGenesBM_BM-PT.rds")
+DeseqResBM <- readRDS("DeseqResBM_BMvsPT.rds")
+BMcells <- readRDS("List_BMposLMcells.rds")
+
+BMupGenes <- intersect(upGenesBM, rownames(onlyPT))
+BMdownGenes <- intersect(downGenesBM, rownames(onlyPT))
+BMsignGenes <- intersect(signGenesBM, rownames(onlyPT))
+
+CommonUpGenes <- intersect(BMupGenes, upGenesDES)
+CommonDownGenes <- intersect(BMdownGenes, downGenesDES)
+
+CombinedUpList <- c(BMupGenes, upGenesDES)
+CombinedGeneList <- c(BMsignGenes, signGenesDES)
+
+onlyPT <- AddModuleScore(onlyPT, features = list(BMupGenes), name = "BMScore")
+onlyPT$BMprofileSymb <- ifelse(colnames(onlyPT) %in% BMcells, "BM+", "BM-")
+onlyPT$profile <- ifelse(onlyPT$LMprofileSymb == "LM+" & onlyPT$BMprofileSymb == "BM+", "Both", ifelse(onlyPT$LMprofileSymb == "LM+" & !(onlyPT$BMprofileSymb == "BM+"), "LM+", ifelse(!(onlyPT$LMprofileSymb == "LM+") & onlyPT$BMprofileSymb == "BM+", "BM+", "None")))
+
+FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "PDX", group.by = "PDX", cols = cols_PDX)
+Fig6a <- FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "seurat_clusters", group.by = "seurat_clusters", cols = cols_clust) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("BMScore") + xlab("LMScore")
+
+saveRDS(Fig6a, "Fig6a.rds")
+Fig6a <- readRDS("Fig6a.rds")
+Fig6a
+
+DimPlot(onlyPT, split.by = "PDX", group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+DimPlot(onlyPT, split.by = "PDX", group.by = "BMprofileSymb", cols = c("BM+" = "yellow", "BM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+
+Fig6b <- DimPlot(onlyPT, split.by = "PDX", group.by = "profile", cols = c("BM+" = "yellow", "LM+" = "#E6550D", "Both" = "orange", "None" = "#D3D3D3"), order = c("Both", "LM+", "BM+", "None"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+
+saveRDS(Fig6b, "Fig6b.rds")
+Fig6b <- readRDS("Fig6b.rds")
+
+Fig6b
+```
+
+```{r Corrplot between genes}
+data_mat <- GetAssayData(data.umap, assay = "RNA", layer = "data")
+data_mat <- data_mat[CombinedUpList, , drop = FALSE]
+data_matt <- t(as.matrix(data_mat))
+corrProb <- cor(data_matt, method = "spearman", use = "complete.obs")
+
+corrProbAnn <- HeatmapAnnotation(Signature = ifelse(colnames(corrProb) %in% upGenesDES & colnames(corrProb) %in% upGenesBM, "Both", ifelse(colnames(corrProb) %in% upGenesDES & !(colnames(corrProb) %in% upGenesBM), "LM", "BM")), show_legend = FALSE, col = list(Signature = c("Both" = "orange", "LM" = "red", "BM" = "yellow")), annotation_label = c(" "))
+corrProbAnnR <- rowAnnotation(Signature = ifelse(colnames(corrProb) %in% upGenesDES & colnames(corrProb) %in% upGenesBM, "Both", ifelse(colnames(corrProb) %in% upGenesDES & !(colnames(corrProb) %in% upGenesBM), "LM", "BM")), show_legend = TRUE, col = list(Signature = c("Both" = "orange", "LM" = "red", "BM" = "yellow")), annotation_label = c(" "))
+corr_col <- colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+
+h <- Heatmap(corrProb, name = "Correlation", clustering_distance_rows = "spearman", clustering_distance_columns = "spearman", cluster_rows = TRUE, cluster_columns = TRUE, show_column_dend = TRUE, col = corr_col, show_column_names = TRUE, show_row_dend = TRUE , top_annotation = corrProbAnn, left_annotation = corrProbAnnR, show_heatmap_legend = TRUE, row_names_side = "right", column_dend_side = "top", column_names_rot = 45, row_gap = unit(1, "mm"), column_gap = unit(1, "mm"), row_dend_width = unit(2, "cm"), column_dend_height = unit(2, "cm"), row_names_gp = gpar(fontsize = 5), column_names_gp = gpar(fontsize = 5))
+
+Fig6c <- draw(h)
+
+saveRDS(Fig6c, "Fig6c.rds")
+Fig6c <- readRDS("Fig6c.rds")
+
+draw(h)
+```
+
+```{r FoldChange BMvsPT genes}
+BMDeseqRes <- DeseqResBM[rownames(DeseqResBM) %in% rownames(DeseqRes), ]
+LMDeseqRes <- DeseqRes[rownames(DeseqRes) %in% rownames(BMDeseqRes), ]
+
+
+PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange, log2FoldChangeBM = BMDeseqRes$log2FoldChange, significance = ifelse(LMDeseqRes$log2FoldChange > 1 & BMDeseqRes$log2FoldChange > 1, "Upregulated", ifelse(LMDeseqRes$log2FoldChange < -1 & BMDeseqRes$log2FoldChange < -1, "Downregulated", "Not significant")))
+
+AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "Upregulated" | PTLMandBMFC$significance == "Downregulated"), ]
+
+Fig6d <- ggplot(PTLMandBMFC, aes(x = log2FoldChangeLM, y = log2FoldChangeBM, color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Upregulated" = "#E6550D")) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+  geom_hline(yintercept = c(-1, 1), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = AllHighlightedGenes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "Fold change of LM and BM genes",
+       x = "Average log2 Fold Change LM-PT",
+       y = "Average log2 Fold Change BM-PT")
+
+saveRDS(Fig6d, "Fig6d.rds")
+Fig6d <- readRDS("Fig6d.rds")
+
+Fig6d
+```
+
+```{r same but p.adjust}
+PTLMandBMPA <- data.frame(gene = rownames(LMDeseqRes), p.adjustLM = LMDeseqRes$padj, p.adjustBM = BMDeseqRes$padj, significance = ifelse(LMDeseqRes$padj < 0.01 & BMDeseqRes$padj < 0.01, "Upregulated", "Not significant"))
+
+AllHighlightedGenes <- PTLMandBMPA[which(PTLMandBMPA$significance == "Upregulated"), ]
+
+Fig6g <- ggplot(PTLMandBMPA, aes(x = -log10(p.adjustLM), y = -log10(p.adjustBM), color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("Not significant" = "grey",
+                                "Upregulated" = "#E6550D")) +
+  geom_vline(xintercept = c(-log10(0.01)), linetype = "dashed") +
+  geom_hline(yintercept = c(-log10(0.01)), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = AllHighlightedGenes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "Fold change of LM and BM genes",
+       x = "Adjusted P-value LM-PT",
+       y = "Adjusted P-value BM-PT")
+
+saveRDS(Fig6g, "Fig6g.rds")
+Fig6g <- readRDS("Fig6g.rds")
+
+Fig6g
+```
+
+
+
+```{r Feature plot BM vs LM}
+p <- FeaturePlot(onlyPT, features = c("BMScore1", "LMScore1"), min.cutoff = "q10", max.cutoff = "q90", blend = TRUE, cols = c("lightgrey", "yellow", "red"), combine = FALSE)
+
+p[3] <- lapply(p[3], function(x) x+theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("UMAP_1") + xlab("UMAP_2"))
+
+p[4] <- lapply(p[4], function(x) x+theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("LMScore") + xlab("BMScore"))
+
+Fig6e <- p[3]
+Fig6f <- p[4]
+
+saveRDS(Fig6e, file = "Fig6e.rds")
+saveRDS(Fig6f, file = "Fig6f.rds")
+
+Fig6e
+Fig6f
+```
+
+###### Combining Plots
+```{r Figure 1}
+#(Fig1a | Fig1b | Fig1c) / Fig1d + plot_annotation(tag_levels = "A")
+Fig1a
+Fig1b
+Fig1c
+Fig1d
+```
+
+```{r Figure 2}
+#(Fig2a / (Fig2b | Fig2c | Fig2d)) + plot_annotation(tag_levels = "A")
+Fig2a
+Fig2b
+Fig2c
+Fig2d
+```
+
+```{r Figure 3}
+#((Fig3a / Fig3b) | Fig3c) / (Fig3d | Fig3e) + plot_annotation(tag_levels = "A")
+Fig3a
+Fig3b
+Fig3c
+Fig3d
+Fig3e
+```
+
+```{r Figure 4}
+#(Fig4a + plot_spacer() + plot_spacer()) / Fig4b + plot_annotation(tag_levels = "A")
+Fig4a
+Fig4b
+Fig4c
+```
+
+```{r Figure 5}
+#(Fig5a | Fig5b | Fig5c | Fig5d) / (Fig5e | Fig5f | plot_spacer()) + plot_annotation(tag_levels = "A")
+Fig5a
+Fig5b
+Fig5c
+Fig5d
+Fig5e
+Fig5f
+```
+
+```{r Figure 6}
+Fig6a
+Fig6b
+Fig6c
+Fig6d
+```
+
+
