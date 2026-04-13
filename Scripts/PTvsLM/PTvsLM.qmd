@@ -2315,6 +2315,9 @@ CommonDownGenes <- intersect(BMdownGenes, downGenesDES)
 CombinedUpList <- union(BMupGenes, upGenesDES)
 CombinedGeneList <- union(BMsignGenes, signGenesDES)
 
+LMupBMdown <- intersect(upGenesDES, downGenesBM)
+BMupLMdown <- intersect(upGenesBM, downGenesDES)
+
 onlyPT <- AddModuleScore(onlyPT, features = list(BMupGenes), name = "BMScore")
 onlyPT$BMprofileSymb <- ifelse(colnames(onlyPT) %in% BMcells, "BM+", "BM-")
 
@@ -2329,7 +2332,7 @@ Fig6a
 DimPlot(onlyPT, split.by = "PDX", group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
 DimPlot(onlyPT, split.by = "PDX", group.by = "BMprofileSymb", cols = c("BM+" = "yellow", "BM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
 
-Fig6b <- DimPlot(onlyPT, split.by = "PDX", group.by = "profile", cols = c("BM+" = "yellow", "LM+" = "#E6550D", "Both" = "orange", "None" = "#D3D3D3"), order = c("Both", "LM+", "BM+", "None"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+DimPlot(onlyPT, split.by = "PDX", group.by = "profile", cols = c("BM+" = "yellow", "LM+" = "#E6550D", "Both" = "orange", "None" = "#D3D3D3"), order = c("Both", "LM+", "BM+", "None"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
 
 saveRDS(Fig6b, "Fig6b.rds")
 Fig6b <- readRDS("Fig6b.rds")
@@ -2361,18 +2364,22 @@ draw(h)
 BMDeseqRes <- DeseqResBM[rownames(DeseqResBM) %in% rownames(DeseqRes), ]
 LMDeseqRes <- DeseqRes[rownames(DeseqRes) %in% rownames(BMDeseqRes), ]
 
+PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)], log2FoldChangeBM = BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)], significance = ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] > 2 & BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] > 2, "High Both", ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] < -2 & BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] < -2, "Low Both", ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] < -2 & BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] > 2, "High BM, Low LM", ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] > 2 & BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] < -2, "High LM, Low BM", ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] < 2 & BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] > 2, "High BM only", ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] > 2 & BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] < 2, "High LM only", ifelse(LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)] < -2, "Low LM only", ifelse(BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)] < -2, "Low BM only", "Not significant")))))))))
 
-PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange, log2FoldChangeBM = BMDeseqRes$log2FoldChange, significance = ifelse(LMDeseqRes$log2FoldChange > 2 & BMDeseqRes$log2FoldChange > 2, "Both", ifelse(LMDeseqRes$log2FoldChange < -2 & BMDeseqRes$log2FoldChange < -2, "PT Both", ifelse(LMDeseqRes$log2FoldChange < -2 & BMDeseqRes$log2FoldChange > 2, "BM", ifelse(LMDeseqRes$log2FoldChange > 2 & BMDeseqRes$log2FoldChange < -2, "LM", "Not significant")))))
-
-AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "Both" | PTLMandBMFC$significance == "PT Both"| PTLMandBMFC$significance == "BM"| PTLMandBMFC$significance == "LM"), ]
+AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "High Both" | PTLMandBMFC$significance == "Low Both"| PTLMandBMFC$significance == "High BM, Low LM"| PTLMandBMFC$significance == "High LM, Low BM"| PTLMandBMFC$significance == "High BM only"| PTLMandBMFC$significance == "High LM only"| PTLMandBMFC$significance == "Low BM only"| PTLMandBMFC$significance == "Low LM only"), ]
 
 Fig6d <- ggplot(PTLMandBMFC, aes(x = log2FoldChangeLM, y = log2FoldChangeBM, color = significance)) +
   geom_point(alpha = 0.5) +
-  scale_color_manual(values = c("PT Both" = "#6BAED6", #"#00AFBB"
+  scale_color_manual(values = c("Low Both" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
-                                "Both" = "orange",
-                                "BM" = "gold",
-                                "LM" = "red")) +
+                                "High Both" = "orange",
+                                "High BM only" = "gold",
+                                "High LM only" = "red",
+                                "High LM, Low BM" = "purple",
+                                "High BM, Low LM" = "forestgreen",
+                                "Low LM only" = "#088F8F",
+                                "Low BM only" = "#4e4e94"
+                                )) +
   geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
   geom_hline(yintercept = c(-2, 2), linetype = "dashed") +
   geom_point(size = 1) +
@@ -2437,14 +2444,14 @@ df <- df %>%
 ggplot(df, aes(x = logp1, y = logp2, color = group)) +
   geom_point(size = 2, alpha = 0.8) +
   #Add labels for shared significant genes above padj 8 for oneof the sets
-  geom_text_repel(data = subset(df, group == "Both"  | (logp1 > 20 | logp2 > 5)), aes(label = gene, color = "black"), size = 3, max.overlaps = 20) +
+  geom_text_repel(data = subset(df, group == "Both"  | (logp1 > 20 | logp2 > 5)), aes(label = gene), size = 3, max.overlaps = 20) +
   scale_y_continuous(limits = c(-0.1, 10), expand = expansion(mult = c(0, 0.1))) +
   scale_x_continuous(limits = c(-0.1, 80), expand = expansion(mult = c(0, 0.1))) +
   # Threshold lines
   geom_vline(xintercept = -log10(threshold), linetype = "dashed") +
   geom_hline(yintercept = -log10(threshold), linetype = "dashed") +
   # Colors (match your red theme)
-  scale_color_manual(values = c("Both" = "orange", "LM DEG" = "red", "BM DEG" = "yellow")) +
+  scale_color_manual(values = c("Both" = "orange", "LM DEG" = "red", "BM DEG" = "gold")) +
   labs(x = expression(-log[10](padj)~" LM DEG"),
     y = expression(-log[10](padj)~" BM DEG"),
     color = "Significance") +
@@ -2478,18 +2485,23 @@ Fig6f
 BMDeseqRes <- DeseqResBM[rownames(DeseqResBM) %in% rownames(DeseqRes), ]
 LMDeseqRes <- DeseqRes[rownames(DeseqRes) %in% rownames(BMDeseqRes), ]
 
+PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)], log2FoldChangeBM = BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)], significance = ifelse(LMDeseqRes$gene %in% CommonUpGenes, "Up DEG Both", ifelse(LMDeseqRes$gene %in% CommonDownGenes, "Down DEG Both", ifelse(LMDeseqRes$gene %in% BMupGenes, "Up DEG BM", ifelse(LMDeseqRes$gene %in% upGenesDES, "Up DEG LM", ifelse(LMDeseqRes$gene %in% downGenesDES, "Down DEG LM", ifelse(LMDeseqRes$gene %in% BMdownGenes, "Down DEG BM", "Not significant")))))))
 
-PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)], log2FoldChangeBM = BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)], significance = ifelse(LMDeseqRes$gene %in% CommonUpGenes, "Both", ifelse(LMDeseqRes$gene %in% CommonDownGenes, "PT Both", ifelse(LMDeseqRes$gene %in% BMupGenes, "BM", ifelse(LMDeseqRes$gene %in% upGenesDES, "LM", "Not significant")))))
+Vector <- c("Not significant", "Up DEG Both", "Down DEG Both", "Up DEG BM", "Up DEG LM", "Down DEG BM", "Down DEG LM")
+PTLMandBMFC$significance <- factor(PTLMandBMFC$significance, levels = Vector)
+PTLMandBMFC <- PTLMandBMFC[order(PTLMandBMFC$significance), ]
 
-AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "Both" | PTLMandBMFC$significance == "PT Both"| PTLMandBMFC$significance == "BM"| PTLMandBMFC$significance == "LM"), ]
+AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance != "Not significant"), ]
 
 Fig6d <- ggplot(PTLMandBMFC, aes(x = log2FoldChangeLM, y = log2FoldChangeBM, color = significance)) +
   geom_point(alpha = 0.5) +
-  scale_color_manual(values = c("PT Both" = "#6BAED6", #"#00AFBB"
+  scale_color_manual(values = c("Down DEG Both" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
-                                "Both" = "orange",
-                                "BM" = "gold",
-                                "LM" = "red")) +
+                                "Up DEG Both" = "orange",
+                                "Up DEG BM" = "gold",
+                                "Up DEG LM" = "red",
+                                "Down DEG BM" = "#4e4e94",
+                                "Down DEG LM" = "#088F8F")) +
   geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
   geom_hline(yintercept = c(-2, 2), linetype = "dashed") +
   geom_point(size = 1) +
