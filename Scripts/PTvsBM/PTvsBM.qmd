@@ -578,8 +578,8 @@ gc()
 
 ```{r Isolating significant genes}
 #Selecting significant genes
-upGenesBM <- DeseqResBM$gene[which(DeseqResBM$padj < 0.01 & DeseqResBM$log2FoldChange > 0.5)]
-downGenesBM <- DeseqResBM$gene[which(DeseqResBM$padj < 0.01 & DeseqResBM$log2FoldChange < -0.5)]
+upGenesBM <- DeseqResBM$gene[which(DeseqResBM$padj < 0.01 & DeseqResBM$log2FoldChange > 2)]
+downGenesBM <- DeseqResBM$gene[which(DeseqResBM$padj < 0.01 & DeseqResBM$log2FoldChange < -2)]
 signGenesBM <- c(upGenesBM, downGenesBM)
 
 saveRDS(upGenesBM, file = "List_upGenesBM_BM-PT.rds")
@@ -593,7 +593,7 @@ signGenesBM <- readRDS("List_signGenesBM_BM-PT.rds")
 
 ```{r Volcano plot of results}
 #Creating dataframe with gene, fold change and adjusted p-value
-Volcano.BM <- data.frame(gene = rownames(DeseqResBM), log2FoldChange = DeseqResBM$log2FoldChange, padj = DeseqResBM$padj, significance = ifelse(DeseqResBM$log2FoldChange > 0.5 & DeseqResBM$padj < 0.01, "Upregulated", ifelse(DeseqResBM$log2FoldChange < -0.5 & DeseqResBM$padj < 0.01, "Downregulated", "Not significant")))
+Volcano.BM <- data.frame(gene = rownames(DeseqResBM), log2FoldChange = DeseqResBM$log2FoldChange, padj = DeseqResBM$padj, significance = ifelse(DeseqResBM$log2FoldChange > 2 & DeseqResBM$padj < 0.01, "Upregulated", ifelse(DeseqResBM$log2FoldChange < -2 & DeseqResBM$padj < 0.01, "Downregulated", "Not significant")))
 
 #selecting genes to label
 top_genesBM <- Volcano.BM %>%
@@ -606,7 +606,7 @@ ggplot(Volcano.BM, aes(x = log2FoldChange, y = -log10(padj), color = significanc
   scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
                                 "Upregulated" = "#E6550D")) +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
   geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
   geom_point(size = 1) +
   geom_text_repel(data = top_genesBM, aes(label = gene), size = 2, max.overlaps = 20) +
@@ -618,8 +618,8 @@ ggplot(Volcano.BM, aes(x = log2FoldChange, y = -log10(padj), color = significanc
 ```
 
 ```{r Calculating BM score, and cutoff}
-DefaultAssay(BM.umap) <- "RNA"
-BM.umap <- NormalizeData(BM.umap, verbose = FALSE)
+#DefaultAssay(BM.umap) <- "RNA"
+#BM.umap <- NormalizeData(BM.umap, verbose = FALSE)
 
 #Calculate score for each cell
 BM.umap <- AddModuleScore(BM.umap, features = list(upGenesBM), name = "BMScore")

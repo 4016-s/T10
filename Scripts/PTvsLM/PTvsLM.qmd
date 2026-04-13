@@ -727,6 +727,38 @@ Fig1a <- DimPlot(data.umap, reduction = "umap_harmony", group.by = "type", cols 
 #DimPlot(data.umap, reduction = "umap_harmony", group.by = "PDX", cols = cols_PDX) + ggtitle("Cell line"), 
 Fig1b <- DimPlot(data.umap, reduction = "umap_harmony", group.by = "seurat_clusters", cols = cols_clust) + ggtitle("Per Cluster") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("UMAP_2") + xlab("UMAP_1")
 
+#Create a Dimplot grid of 2x3 with PDX as columns and rows as type, plotting only cells agreeing with boths. With PDX as column label and type as row label. Styled as the DimPlots above.
+#Create the same dimplot grid but styled with black borders and axis titles and no axis ticks or text. With column titles and row titles, but not individual plot titles. 
+wrap_plots(
+  DimPlot(subset(data.umap, type == "PT" & PDX == "LU-NB-1"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle("LU-NB-1"),
+  DimPlot(subset(data.umap, type == "PT" & PDX == "LU-NB-2"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle("LU-NB-2"),
+  DimPlot(subset(data.umap, type == "PT" & PDX == "LU-NB-3"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle("LU-NB-3"),
+  DimPlot(subset(data.umap, type == "LM" & PDX == "LU-NB-1"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend(),
+  DimPlot(subset(data.umap, type == "LM" & PDX == "LU-NB-2"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend(),
+  DimPlot(subset(data.umap, type == "LM" & PDX == "LU-NB-3"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend(),
+  ncol = 3
+) + plot_layout(guides = "collect") & theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) & theme(legend.position = "none")
+
+# Q: Can one make a grid of dimplots that share borders with eachother? With column titles and row titles, but not individual plot titles?
+# A: Yes, using wrap_plots and plot_layout from the patchwork package. You can create a grid of dimplots and customize the theme to have shared borders and specific titles for columns and rows. In the example above, I created a 2x3 grid of dimplots based on PDX and type, with customized themes to achieve the desired appearance.
+# Q: The one you created above did not have shared borders, how can one create a this grid in another way?
+# A: To create a grid of dimplots with shared borders, you can use the cowplot package in R. Here's an example of how to do this:
+cowplot::plot_grid(
+  DimPlot(subset(data.umap, type == "PT" & PDX == "LU-NB-1"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle("LU-NB-1") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), plot.margin = unit(c(0, 0, 0, 0), "cm")) + ylab("PT") + xlab(NULL),
+  DimPlot(subset(data.umap, type == "PT" & PDX == "LU-NB-2"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle("LU-NB-2") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), plot.margin = unit(c(0, 0, 0, 0), "cm")) + ylab(NULL) + xlab(NULL),
+  DimPlot(subset(data.umap, type == "PT" & PDX == "LU-NB-3"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle("LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), plot.margin = unit(c(0, 0, 0, 0), "cm")) + ylab(NULL) + xlab(NULL),
+  DimPlot(subset(data.umap, type == "LM" & PDX == "LU-NB-1"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle(NULL) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), plot.margin = unit(c(0, 0, 0, 0), "cm")) + ylab("LM") + xlab(NULL),
+  DimPlot(subset(data.umap, type == "LM" & PDX == "LU-NB-2"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle(NULL) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), plot.margin = unit(c(0, 0, 0, 0), "cm")) + ylab(NULL) + xlab(NULL),
+  DimPlot(subset(data.umap, type == "LM" & PDX == "LU-NB-3"), reduction = "umap_harmony", group.by = "type", cols = cols_type) + NoLegend() + ggtitle(NULL) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), plot.margin = unit(c(0, 0, 0, 0), "cm")) + ylab(NULL) + xlab(NULL),
+  ncol = 3,
+  align = 'hv',
+  axis = 'tblr'
+)
+
+data.umap$PDX_type <- factor(data.umap$PDX_type, levels = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "LM LU-NB-1", "LM LU-NB-2", "LM LU-NB-3"))
+
+DimPlot(data.umap, reduction = "umap_harmony", group.by = "type", split.by = "PDX_type", cols = cols_type, ncol = 3) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1), legend.position = "none") + ylab("UMAP_2") + xlab("UMAP_1")
+
 saveRDS(Fig1a, file = "Fig1a.rds")
 saveRDS(Fig1b, file = "Fig1b.rds")
 ```
@@ -884,7 +916,7 @@ h8 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, clust
 heatmapSer0 <- subset(clusterHeatmap, features = top10Cluster, seurat_clusters == "10")
 heatmapMatr0 <- GetAssayData(heatmapSer0, assay = "RNA", layer = "scale.data")
 heatmapMatr0 <- heatmapMatr0[order(factor(rownames(heatmapMatr0), levels = top10Cluster)), ]
-heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+heatmapAnn0 <- HeatmapAnnotation(Cluster = heatmapSer0$seurat_clusters, PDX = heatmapSer0$PDX, Location = heatmapSer0$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c("Cluster", "PDX", "Type"), show_legend = FALSE)
 h9 <- Heatmap(heatmapMatr0, name = "clusterHeatmap", cluster_rows = FALSE, cluster_columns = FALSE, show_column_dend = FALSE, show_column_names = FALSE, show_row_dend = FALSE , top_annotation = heatmapAnn0, col = col_fun, use_raster = FALSE, column_title = "10", show_heatmap_legend = FALSE, row_names_gp = gpar(fontsize = 6), width = unit(3, "mm"), right_annotation = heatmapAnnR)
 
 
@@ -1271,8 +1303,8 @@ gc()
 ```
 
 ```{r Getting sign Gene list}
-upGenesDES <- DeseqRes$gene[which(DeseqRes$padj < 0.01 & DeseqRes$log2FoldChange > 0.5)]
-downGenesDES <- DeseqRes$gene[which(DeseqRes$padj < 0.01 & DeseqRes$log2FoldChange < -0.5)]
+upGenesDES <- DeseqRes$gene[which(DeseqRes$padj < 0.01 & DeseqRes$log2FoldChange > 2)]
+downGenesDES <- DeseqRes$gene[which(DeseqRes$padj < 0.01 & DeseqRes$log2FoldChange < -2)]
 signGenesDES <- c(upGenesDES, downGenesDES)
 
 saveRDS(upGenesDES, file = "List_upGenesDES_LM-PT.rds")
@@ -1393,6 +1425,7 @@ Showing expression levels in 8 most significant genes in all cells, grouped by t
 Showing cells expression of significant genes in UMAP projection 
 ```{r Dotplot sign genes}
 Fig3b <- DotPlot(data.umap, features = signGenesDES, group.by = "PDX_type") + RotatedAxis()
+Fig3b
 
 saveRDS(Fig3b, file = "Fig3b.rds")
 ```
@@ -1410,8 +1443,8 @@ Shows heatmap of most significant genes. (Show less or more genes?)
 volcplot.de <- data.de %>%
   mutate(gene = rownames(data.de),
          significance = case_when(
-           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
-           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
+           avg_log2FC > 2 & p_val_adj < 0.05 ~ "Upregulated",
+           avg_log2FC < -2 & p_val_adj < 0.05 ~ "Downregulated",
            TRUE ~ "Not significant"
          ))
 top_genes <- volcplot.de %>%
@@ -1423,7 +1456,7 @@ ggplot(volcplot.de, aes(x = avg_log2FC, y = -log10(p_val_adj), color = significa
   scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
                                 "Upregulated" = "#E6550D")) +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   geom_point(size = 1) +
   geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
@@ -1443,7 +1476,7 @@ Volcanoplot showing expression against significance, cutoffs at 0.5(SD) and 0.05
 #           log2FoldChange < -0.5 & padj < 0.05 ~ "Downregulated",
 #           TRUE ~ "Not significant"
 #         ))
-Volcano.Deseq <- data.frame(gene = rownames(DeseqRes), log2FoldChange = DeseqRes$log2FoldChange, padj = DeseqRes$padj, significance = ifelse(DeseqRes$log2FoldChange > 0.5 & DeseqRes$padj < 0.01, "Upregulated", ifelse(DeseqRes$log2FoldChange < -0.5 & DeseqRes$padj < 0.01, "Downregulated", "Not significant")))
+Volcano.Deseq <- data.frame(gene = rownames(DeseqRes), log2FoldChange = DeseqRes$log2FoldChange, padj = DeseqRes$padj, significance = ifelse(DeseqRes$log2FoldChange > 2 & DeseqRes$padj < 0.01, "Upregulated", ifelse(DeseqRes$log2FoldChange < -2 & DeseqRes$padj < 0.01, "Downregulated", "Not significant")))
 
 top_genes <- Volcano.Deseq %>%
   arrange(padj) %>%
@@ -1454,7 +1487,7 @@ Fig3a <- ggplot(Volcano.Deseq, aes(x = log2FoldChange, y = -log10(padj), color =
   scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
                                 "Upregulated" = "#E6550D")) +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
   geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
   geom_point(size = 1) +
   geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
@@ -1464,6 +1497,8 @@ Fig3a <- ggplot(Volcano.Deseq, aes(x = log2FoldChange, y = -log10(padj), color =
        y = "-log10 Adjusted P-value")
 
 Fig3a
+
+saveRDS(Fig3a, file = "Fig3a.rds")
 
 rm(volcplot.de, top_genes)
 
@@ -1514,7 +1549,7 @@ options(expressions = 500000) #Because it is very very nested, gives error
 #dend <- cut(dend, h = 10)
 #plot(dend, main = "please")
 
-heatmapAnn <- HeatmapAnnotation(Cluster = heatmapSer$seurat_clusters, PDX = heatmapSer$PDX, Location = heatmapSer$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c(" ", " ", " "), show_legend = FALSE)
+heatmapAnn <- HeatmapAnnotation(Cluster = heatmapSer$seurat_clusters, PDX = heatmapSer$PDX, Location = heatmapSer$type, col = list(Cluster = cols_clust, PDX = cols_PDX, Location = cols_type), annotation_label = c("Cluster", "PDX", "Type"), show_legend = FALSE)
 heatmapAnnR <- rowAnnotation(Signature = ifelse(rownames(heatmapMatr) %in% upGenesDES, "LM", "PT"), show_legend = FALSE, col = list(Signature = cols_type), annotation_label = c(" "))
 
 
@@ -1535,14 +1570,6 @@ Fig3e <- readRDS("Fig3e.rds")
 rm(h, heatmapMatr, heatmapAnn, heatmapAnnR, matrixLGND, clusterLGND, cellLineLGND, GeneSignLGND, LGNDs, heatmapSer, clusterHeatmap)
 ```
 
-```{r Not working}
-#annotations_df2 <- data.frame(celltype = data.heatmap@meta.data$type, row.names = colnames(data.heatmap))
-#matrixHeatmap <- as.matrix(data.heatmap@assays$RNA@layers$data)
-#colnames(matrixHeatmap) <- colnames(data.heatmap)
-#rownames(matrixHeatmap) <- rownames(data.heatmap)
-#pheatmap(matrixHeatmap, scale = "row", breaks = seq(-3, 3, length.out = 101), annotation_col = annotations_df2, #show_colnames = F, show_rownames = TRUE, color = col_fun(seq(-3, 3, length.out = 101)), annotation_colors = #annotations_col, fontsize_row = 6)
-```
-
 
 ```{r Corrplot}
 data_mat <- GetAssayData(data.umap, assay = "RNA", layer = "data")
@@ -1550,133 +1577,20 @@ data_mat <- data_mat[signGenesDES, , drop = FALSE]
 data_matt <- t(as.matrix(data_mat))
 corrProb <- cor(data_matt, method = "spearman", use = "complete.obs") # creates matrix of p-values for correlation between the significant genes
 
-#gene_colors <- ifelse(colnames(corrProb) %in% uppGenes, "orange", "green") # Trying to color the text with HTML but did not work.
-#names(gene_colors) <- colnames(corrProb)
-#axis_labels <- paste0( "<span style='color:", gene_colors, "'>", colnames(corrProb), "</span>")
-#names(axis_labels) <- colnames(corrProb)
-
-#p_corr <- ggcorrplot(corrProb, hc.order = TRUE, outline.col = "white")
-#Trying to use ggplot to combine plots
-#ann_genes <- rownames(corrProb)
-
-#df_ann <- data.frame(gene = ann_genes, regulation = ifelse(ann_genes %in% upGenesDES, "Up", ifelse(ann_genes %in% downGenesDES, "Down", NA)), stringsAsFactors = FALSE)
-
-#hc_method <- "complete"    #Trying to copy hc.order but did not work right...
-#dist_mat <- as.dist(1 - corrProb)  
-#hc <- hclust(dist_mat, method = hc_method)
-#corr_reordered <- corrProb[hc$order, hc$order]
-#gene_order <- colnames(corr_reordered)
-
-#Creating a seperate annotaionsbar with genes up or downregulated to paste on top
-#df_ann$gene <- factor(df_ann$gene, levels = c("GSTT2B", "TRIM73", "NDUFA3", "PET100", "C4orf48", "ALDOA", "PET117", "NUDT3", "PABPN1", "SORD", "CEP63", "ASPM", "FKBP2", "LINC-PINT", "SMAD6", "SPRY3", "ARHGAP39", "MSTO1", "FAM163B", "CHN2", "RHOXF1", "MATR3", "SIK1", "OOEP", "DNLZ", "SNHG31", "B3GALT1", "GGPS1", "TIMM23B", "CBS", "U2AF1", "SCHIP1", "POMK", "ZBTB18", "CUL4B", "ID2", "PDZRN3"))
-#p_ann <- ggplot(df_ann, aes(y = gene, x= 1, fill = regulation)) +
-#  geom_tile() +
-#  geom_text(aes(label = gene), color = "black", size = 3) +
-#  scale_fill_manual(values = c(Up = "#E6550D", Down = "#6BAED6")) +
-#  theme_void() +
-#  theme(legend.position = "top", plot.margin = margin(0, 5, 0, 5))
-
-#Printing plots
-#p_corr
-#p_ann
-
-#rm(data_mat, data_matt, corrProb, p_corr, ann_genes, df_ann, p_ann)
-```
-
-```{r Corrplot by Complex heatmap}
-
 corrProbAnn <- HeatmapAnnotation(Signature = ifelse(colnames(corrProb) %in% upGenesDES, "LM", "PT"), show_legend = FALSE, col = list(Signature = cols_type), annotation_label = c(" "))
 corrProbAnnR <- rowAnnotation(Signature = ifelse(rownames(corrProb) %in% upGenesDES, "LM", "PT"), show_legend = TRUE, col = list(Signature = cols_type), annotation_label = c(" "))
-corr_col <- colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+corr_col <- colorRamp2(c(-0.2, 0.15, 0.6), c("blue", "white", "red"))
 
-h <- Heatmap(corrProb, name = "Correlation", clustering_distance_rows = "spearman", clustering_distance_columns = "spearman", cluster_rows = TRUE, cluster_columns = TRUE, show_column_dend = TRUE, col = corr_col, show_column_names = TRUE, show_row_dend = TRUE , top_annotation = corrProbAnn, left_annotation = corrProbAnnR, show_heatmap_legend = TRUE, row_names_side = "right", column_dend_side = "top", column_names_rot = 45, row_gap = unit(1, "mm"), column_gap = unit(1, "mm"), row_dend_width = unit(2, "cm"), column_dend_height = unit(2, "cm"))
+h <- Heatmap(corrProb, name = "Correlation", clustering_distance_rows = "spearman", clustering_distance_columns = "spearman", cluster_rows = TRUE, cluster_columns = TRUE, show_column_dend = TRUE, col = corr_col, show_column_names = TRUE, show_row_dend = TRUE , top_annotation = corrProbAnn, left_annotation = corrProbAnnR, show_heatmap_legend = TRUE, row_names_side = "right", column_dend_side = "top", column_names_rot = 45, row_gap = unit(1, "mm"), column_gap = unit(1, "mm"), row_dend_width = unit(2, "cm"), column_dend_height = unit(2, "cm"), row_names_gp = gpar(fontsize = 6), column_names_gp = gpar(fontsize = 6))
 
 Fig3d <- draw(h)
 
-Fig3d
-
 saveRDS(Fig3d, file = "Fig3d.rds")
+
+
 ```
 
 Clustering genes correlation and plotting in heatmap
-
-###################
-```{r MAST stuff (not done)}
-##MAST:
-#Dotplot
-#DoHeatMap
-#pheatmap
-#Volcanoplot
-```
-
-```{r ADR and MES genes (not needed)}
-###Mesenchymal and Adrenergic:
-##Dotplot
-#DotPlot(data.umap, features = signGenesAdr[1:60], group.by = "type_state") + RotatedAxis()
-#DotPlot(data.umap, features = signGenesMes[1:60], group.by = "type_state") + RotatedAxis()
-##DoHeatMap
-#data.doheat <- ScaleData(data.umap, features = signGenesAdr)
-#DoHeatmap(data.doheat, features = signGenesAdr[1:60], group.by = "type_state", group.colors = cols_type)
-#rm(data.doheat)
-#data.doheat <- ScaleData(data.umap, features = signGenesMes)
-#DoHeatmap(data.doheat, features = signGenesMes[1:60], group.by = "type_state", group.colors = cols_type)
-#rm(data.doheat)
-##pheatmap (kanske senare)
-##Volcanoplot
-##Adrenergic
-#volcplot.de <- Adr.de %>%
-#  mutate(gene = rownames(Adr.de),
-#         significance = case_when(
-#           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
-#           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
-#           TRUE ~ "Not significant"
-#         ))
-#top_genes <- volcplot.de %>%
-#  arrange(p_val_adj) %>%
-#  dplyr::slice(1:20)
-
-#ggplot(volcplot.de, aes(x = avg_log2FC, y = -log10(p_val_adj), color = significance)) +
-#  geom_point(alpha = 0.5) +
-#  scale_color_manual(values = c("Downregulated" = "#0072B2", #"#00AFBB"
-#                                "Not significant" = "grey",
-#                                "Upregulated" = "#bb0c00")) +
-#  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
-#  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-#  geom_point(size = 1) +
-#  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
-#  theme_minimal() +
-#  labs(title = "Only adrenergic, PT vs LM: Differentially Expressed Genes",
-#       x = "Average log2 Fold Change",
-#       y = "-log10 Adjusted P-value")
-#rm(volcplot.de, top_genes)
-##Mesenchymal
-#volcplot.de <- Mes.de %>%
-#  mutate(gene = rownames(Mes.de),
-#         significance = case_when(
-#           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
-#           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
-#           TRUE ~ "Not significant"
-#         ))
-#top_genes <- volcplot.de %>%
-#  arrange(p_val_adj) %>%
-#  dplyr::slice(1:20)#
-
-#ggplot(volcplot.de, aes(x = avg_log2FC, y = -log10(p_val_adj), color = significance)) +
-#  geom_point(alpha = 0.5) +
-#  scale_color_manual(values = c("Downregulated" = "#0072B2", #"#00AFBB"
-#                                "Not significant" = "grey",
-#                                "Upregulated" = "#bb0c00")) +
-#  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
-#  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-#  geom_point(size = 1) +
-#  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
-#  theme_minimal() +
-#  labs(title = "Only Mesenchymal, PT vs LM: Differentially Expressed Genes",
-#       x = "Average log2 Fold Change",
-#       y = "-log10 Adjusted P-value")
-#rm(volcplot.de, top_genes)
-```
-Samma plots för DE gener från Adrenergic och Mesenchymal
 ###########################################################################################################
 ##Gene set enrichment analysis
 Visualizing biological pathways uppregulated
@@ -1783,7 +1697,7 @@ saveRDS(Fig4a, file = "Fig4a.rds")
 dfKEGG <- gseKegg@result
 dfKEGG <- dfKEGG[dfKEGG$p.adjust < 0.05, ]
 # Top 10 up and down
-df_mainKEGG <- head(dfKEGG[order(dfKEGG$p.adjust), ], 10)
+df_mainKEGG <- head(dfKEGG[order(dfKEGG$p.adjust), ], 100)
 df_mainKEGG$Direction <- ifelse(df_mainKEGG$NES > 0, "Up", "Down")
 
 NES_Bar_KEGG <- ggplot(df_mainKEGG, aes(x = -log(p.adjust), y = reorder(Description, -p.adjust), fill = NES)) +
@@ -1792,6 +1706,16 @@ NES_Bar_KEGG <- ggplot(df_mainKEGG, aes(x = -log(p.adjust), y = reorder(Descript
   scale_fill_gradient(low  = "blue", high = "red", name = "NES") +
   theme_minimal(base_size = 12) +
   theme(plot.title = element_text(face = "bold")
+  )
+NES_Bar_KEGG
+
+NES_Bar_KEGG <- ggplot(df_mainKEGG, aes(x = reorder(Description, p.adjust), y = -log(p.adjust), fill = NES)) +
+  geom_col(width = 0.8) +
+  labs(x = NULL, y = "-log 10 Adjusted P-value", title = "KEGG GSEA") +
+  scale_fill_gradient(low  = "blue", high = "red", name = "NES") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"), 
+        axis.text.x = element_text(angle = 70, hjust = 1)
   )
 NES_Bar_KEGG
 ```
@@ -1837,40 +1761,9 @@ Ett sätt att testa vilka cellular components våra gener är involverade i
 
 ```
 
-######
-
-```{r MAST enrichment (not done)}
-#MAST
-#EnrichGO
-#EnrichKEGG
-#EnrichNCG
-#gseGO
-#gseKEGG
-```
-
-```{r Adr/Mes enrichment (not needed)}
-#Mesenchymal and adrenergic
-#Mesenchymal
-#geneListMes <- Mes.de$avg_log2FC # skapa lista med gener och deras värden
-#names(geneListMes) <- Mes.de$gene
-#gene.dfMes <- bitr(names(geneListMes), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db) #översätter till #entrez
-
-#geneListMes <- geneListMes[gene.dfMes$SYMBOL]
-#names(geneListMes) <- gene.df$ENTREZID #ny lista med samma värden men entrez id istället
-#geneListMes <- sort(geneListMes, decreasing = TRUE) #sorterar listan
-##Adrenergic
-#geneListAdr <- Adr.de$avg_log2FC # skapa lista med gener och deras värden
-#names(geneListAdr) <- data.de$gene
-#gene.df <- bitr(names(geneList), fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db) #översätter till entrez
-#
-#geneList <- geneList[gene.df$SYMBOL]
-#names(geneList) <- gene.df$ENTREZID #ny lista med samma värden men entrez id istället
-#geneList <- sort(geneList, decreasing = TRUE) #sorterar listan
 
 
-```
-
-##########################################################################################################
+#################################################################################################
 ##Identifying genes of interest
 Looking for genes in good pathways and genes in many pathways
 ```{r List of sign genes in most pathways + fold change}
@@ -1951,67 +1844,7 @@ gseaplot2(
 )
 ```
 Plot över generna i en pathway och var de är i vår lista
-```{r taking only significant genes in gsea(not working, not needed)} 
-#Making gseobjects with only significant genes, can not be plotted as pathways only have one gene sometimes
-#gseGoX@result <- gseGoX@result %>%
-#  rowwise() %>%
-#  mutate(
-#    core_enrichment = {
-#      x = .data$core_enrichment
-#      if (is.null(x) || is.na(x)){
-#        NA_character_
-#      } else {
-#        genes <- as.character(x)
-#        genes <- unlist(strsplit(genes, "/"))
-#        genes <- genes[genes %in% signGenes]
-#        if (length(genes) == 0) NA_character_
-#        else paste(genes, collapse = "/")
-#      }
-#    }
-#  ) %>%
-#  ungroup() %>%
-#  filter(!is.na(core_enrichment))
-#
-#gseKeggX@result <- gseKeggX@result %>%
-#  rowwise() %>%
-#  mutate(
-#    core_enrichment = {
-#      x = .data$core_enrichment
-#      if (is.na(x) || is.null(x)){
-#        NA_character_
-#      } else {
-#        genes <- as.character(x)
-#        genes <- unlist(strsplit(genes, "/"))
-#        genes <- genes[genes %in% signGenes]
-#        if (length(genes) == 0) NA_character_
-#        else paste(genes, collapse = "/")
-#      }
-#    }
-#  ) %>%
-#  ungroup() %>%
-#  filter(!is.na(core_enrichment))
-#
-#simplified_gseGOX@result <- simplified_gseGOX@result %>%
-#  rowwise() %>%
-#  mutate(
-#    core_enrichment = {
-#      x = .data$core_enrichment
-#      if (is.na(x) || is.null(x)){
-#        NA_character_
-#      } else {
-#        genes <- as.character(x)
-#        genes <- unlist(strsplit(genes, "/"))
-#        genes <- genes[genes %in% signGenes]
-#        if (length(genes) == 0) NA_character_
-#        else paste(genes, collapse = "/")
-#      }
-#    }
-#  ) %>%
-#  ungroup() %>%
-#  filter(!is.na(core_enrichment))
-#Titta om gen listorna verkligen ligger som genes i core_enrichment???
-```
-Nya objekt med enbart signifikanta gener för plotting
+
 
 ```{r Heatplot of pathways and their genes}
 #heatplot(gseGoX, showCategory = 10, foldChange = geneList)
@@ -2025,8 +1858,9 @@ heatplot(gseKeggX, showCategory = c("Signaling pathways regulating pluripotency 
 #heatplot(simplified_gseGOX, showCategory = c("negative chemotaxis", "ephrin receptor signaling pathway", "axon guidance", "establishment or maintenance of apical/basal cell polarity", "regulation of small GTPase mediated signal transduction"), foldChange = geneListSign)
 heatplot(gseKeggX, showCategory = c("Signaling pathways regulating pluripotency of stem cells", "TGF-beta signaling pathway"), foldChange = geneList) + scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Fold Change")
 
-Fig4b <- heatplot(gseKeggX, showCategory = c("Cytokine-cytokine receptor interaction", "Pathways in cancer", "PI3K-Akt signaling pathway", "NOD-like receptor signaling pathway", "TNF signaling pathway", "Integrin signaling"), foldChange = geneList) + theme(axis.text.x = element_text(size = 4, lineheight = 0.8), axis.text.y = element_text(size = 6)) + scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Fold Change")
+heatplot(gseKeggX, showCategory = c("Cytokine-cytokine receptor interaction", "Pathways in cancer", "PI3K-Akt signaling pathway", "NOD-like receptor signaling pathway", "TNF signaling pathway", "Integrin signaling"), foldChange = geneList) + theme(axis.text.x = element_text(size = 4, lineheight = 0.8), axis.text.y = element_text(size = 6)) + scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Fold Change")
 
+Fig4b <- heatplot(gseKeggX, showCategory = c("Cytokine-cytokine receptor interaction", "NOD-like receptor signaling pathway"), foldChange = geneList) + theme(axis.text.x = element_text(size = 8, lineheight = 0.8), axis.text.y = element_text(size = 10)) + scale_fill_gradient2(low = "blue", mid = "white", high = "red", name = "Fold Change")
 
 Fig4b
 
@@ -2036,20 +1870,6 @@ Fig4b <- readRDS("Fig4b.rds")
 Heatmap showing what genes are in a Pathway and which of these are significant, as well as how strong the change is
 
 
-
-```{r Dotplot of pathway genes}
-#Dotplot that is not working. Plotting all pathways. Also redundant as heatmap plots the same variables in a pleasurable way
-#le_GO_df_sig <- le_GO_df %>% filter(Gene %in% signGenesEntrez)
-#gene_pathway_df <- le_GO_df %>%
-#  left_join(rank_df, by = "Gene")
-
-#ggplot(gene_pathway_df, aes(x = Description, y = Gene, color = rank_metric, size = abs(rank_metric))) +
-#  geom_point() +
-#  scale_color_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-#  labs(x = "Pathway", y = "Gene", color = "Rank metric", size = "|Rank|") +
-#  theme_minimal() +
-#  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
 Extra dotplot, same as heatplot.
 ```{r Interconnected pathways and their genes}
 #Top 20 pathways
@@ -2081,44 +1901,15 @@ Fig4b <- readRDS("Fig4b.rds")
 Fig4c
 
 ```
-#### gsea för MAST och ADR/MES gener
 
-```{r MAST plots (not done/needed)}
-##same plots but for MAST
-```
-
-```{r Adr/Mes plots (not done/needed)}
-##same but for Mes and Adr
-```
-
-```{r Shared genes from different DE (not done or needed)}
-#GenesInCommon <- intersect(signGenes, signGenesMast)
-#GenesAdrShared <- intersect(signGenes, signGenesAdr)
-#GenesMesShared <- intersect(signGenes, signGenesMes) 
-#GenesAdrShared
-#GenesMesShared
-```
 ################################ PT och LM scores
 Visualisera vidare
 
 ```{r Vlnplots of all significant genes}
 data.umap$PDX_type <- factor(x = data.umap$PDX_type, levels = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "LM LU-NB-1", "LM LU-NB-2", "LM LU-NB-3"))
 data.umap$type_state <- factor(x = data.umap$type_state, levels = c("PT_Adr", "PT_Mes", "LM_Adr", "LM_Mes"))
-#Vlnplot of genes in all data
-#VlnPlot(data.umap, features = upGenesDES, group.by = "type_state", pt.size = 0, stack = TRUE, flip = TRUE, cols #= c(rep("#E6550D", 27))) +
-#        theme(legend.position = "none")
-#VlnPlot(data.umap, features = downGenesDES, group.by = "PDX_type", pt.size = 0, stack = TRUE, flip = TRUE, cols #= c(rep("#6BAED6", 10))) +
-#        theme(legend.position = "none")
-#VlnPlot(data.umap, features = downGenesDES, group.by = "type_state", pt.size = 0, stack = TRUE, flip = TRUE, #cols = c(rep("#6BAED6", 10))) +
-#        theme(legend.position = "none")
-#VlnPlot(data.umap, features = upGenesDES, group.by = "PDX_type", pt.size = 0, stack = TRUE, flip = TRUE, cols = #c(rep("#E6550D", 27))) +
-#        theme(legend.position = "none")
 
-#VlnPlot(data.umap, features = signGenesDES, group.by = "type_state", pt.size = 0, stack = TRUE, flip = TRUE, #cols = c(rep("#E6550D", 27), rep("#6BAED6", 10))) +
-#        theme(legend.position = "none")
-#VlnPlot(data.umap, features = signGenesDES, group.by = "PDX_type", pt.size = 0, stack = TRUE, flip = TRUE, cols #= c(rep("#E6550D", 27), rep("#6BAED6", 10))) +
-#        theme(legend.position = "none")
-Fig3c <- VlnPlot(data.umap, features = signGenesDES, group.by = "seurat_clusters", pt.size = 0, stack = TRUE, flip = TRUE, cols = c(rep("#E6550D", 126), rep("#6BAED6", 55))) +
+VlnPlot(data.umap, features = signGenesDES, group.by = "seurat_clusters", pt.size = 0, stack = TRUE, flip = TRUE, cols = c(rep("#E6550D", 126), rep("#6BAED6", 55))) +
         theme(legend.position = "none")+ NoLegend()
 
 DotPlot(data.umap, features = signGenesDES, group.by = "seurat_clusters")
@@ -2128,16 +1919,7 @@ saveRDS(Fig3c, file = "Fig3c.rds")
 #VlnPlot(onlyPT, features = upGenesDES, group.by = "seurat_clusters", pt.size = 0, stack = TRUE, flip = TRUE, #cols = c(rep("#E6550D", 126))) + theme(legend.position = "none")
 ```
 Vlnplot av alla gener i celllinjer och Adrenerga/Mesenchymala
-```{r Featureplots and heatmap of all significant genes (not needed)}
-#Featureplot of finalLM
-#FeaturePlot(finalLM, features = signGenes)
-#Heatmap av generna i finalLM cluster
-#finalLM.doheat <- ScaleData(finalLM, features = signGenes)
-#DoHeatmap(finalLM.doheat, features = signGenes, group.by = "seurat_clusters")
-#DoHeatmap(finalLM.doheat, features = signGenes, group.by = "PDX")
-#rm(data.doheat)
-```
-Bedömma om dessa gener är bra? Via plotting
+
 
 ```{r Adding LM and PT score + UMAP and Vlnplots}
 #PT signature and LM signature
@@ -2148,9 +1930,9 @@ data.umap <- AddModuleScore(data.umap, features = list(downGenesDES), name = "PT
 #Featureplot of score
 #FeaturePlot(data.umap, features = c("LMScore1", "PTScore1"), min.cutoff = "q10", max.cutoff = "q90", ncol = 3)
 #Vinplot on cluster/cellstate
-#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "type", pt.size = 0)
-#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "PDX_type", pt.size = 0)
-#VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "type_state", pt.size = 0)
+VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "type", pt.size = 0)
+VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "PDX_type", pt.size = 0)
+VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "type_state", pt.size = 0)
 #VlnPlot(data.umap, features = c("LMScore1", "PTScore1"), group.by = "seurat_clusters", pt.size = 0)
 
 #FeatureScatter(data.umap, feature1 = "PTScore1", feature2 = "LMScore1", split.by = "PDX", group.by = "type", cols = cols_type)
@@ -2172,15 +1954,14 @@ LMcutoff <- LMScoreMean - LMScoreSD
 #LMscoreDF <- data.frame(cells, Location, Values)
 
 ```
-Finding 2SD from LM data. For LM profile cut-off
+Finding 1SD from LM data. For LM profile cut-off
 
 ```{r Setting cut-off and assigning identity. + Barplot of percantages}
-LMcells <- WhichCells(data.umap, expression = LMScore1 > LMcutoff)
-PTcells <- WhichCells(data.umap, expression = PTScore1 > 0.1)
-data.umap$signature <- ifelse(colnames(data.umap) %in% LMcells & colnames(data.umap) %in% PTcells, "Both", ifelse(colnames(data.umap) %in% LMcells, "LM", ifelse(colnames(data.umap) %in% PTcells, "PT", "None")))
+#LMcells <- WhichCells(data.umap, expression = LMScore1 > LMcutoff)
+#PTcells <- WhichCells(data.umap, expression = PTScore1 > 0.1)
+#data.umap$signature <- ifelse(colnames(data.umap) %in% LMcells & colnames(data.umap) %in% #PTcells, "Both", ifelse(colnames(data.umap) %in% LMcells, "LM", ifelse(colnames(data.umap) %in% #PTcells, "PT", "None")))
 onlyPT <- subset(data.umap, type == "PT")
-onlyPT$LMprofile <- ifelse(onlyPT$LMScore1 > LMcutoff, "LM_like", "not_LM_like")
-onlyPT$LMprofileSymb <- ifelse(onlyPT$LMScore1 > LMcutoff, "LM+", "LM-")
+onlyPT$LMprofile <- ifelse(onlyPT$LMScore1 > LMcutoff, "LM-like", "not LM-like")
 onlyPT1 <- subset(onlyPT, PDX == "LU-NB-1")
 onlyPT2 <- subset(onlyPT, PDX == "LU-NB-2")
 onlyPT3 <- subset(onlyPT, PDX == "LU-NB-3")
@@ -2195,9 +1976,9 @@ onlyPT <- readRDS("SeuratObject_onlyPT_withScores.rds")
 #DimPlot(onlyPT, group.by = "signature", cols = c(LM = "#E6550D", PT = "#6BAED6", Both = "#8B00FF", None = "#D3D3D3"), order = c("Both", "LM", "PT", "None")) + ggtitle("PT cells by signature")
 
 
-Fig5b <- DimPlot(onlyPT1, group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-1") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
-Fig5c <- DimPlot(onlyPT2, group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-2") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
-Fig5d <- DimPlot(onlyPT3, group.by = "LMprofileSymb", cols = c("LM+" = "#E6550D", "LM-" = "#D3D3D3"), order = c("LM+", "LM-"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.8, 0.8)) + ylab("UMAP_2") + xlab("UMAP_1")
+Fig5b <- DimPlot(onlyPT1, group.by = "LMprofile", cols = c("LM-like" = "#E6550D", "not LM-like" = "#D3D3D3"), order = c("LM-like", "not LM-like"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-1") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.7, 0.7), legend.title=element_text(size=4)) + ylab("UMAP_2") + xlab("UMAP_1")
+Fig5c <- DimPlot(onlyPT2, group.by = "LMprofile", cols = c("LM-like" = "#E6550D", "not LM-like" = "#D3D3D3"), order = c("LM-like", "not LM-like"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-2") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.7, 0.7), legend.title=element_text(size=4)) + ylab("UMAP_2") + xlab("UMAP_1")
+Fig5d <- DimPlot(onlyPT3, group.by = "LMprofile", cols = c("LM-like" = "#E6550D", "not LM-like" = "#D3D3D3"), order = c("LM-like", "not LM-like"), pt.size = 1.2) + NoLegend() + ggtitle("PT LU-NB-3") + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 12, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1),legend.position = "inside", legend.position.inside = c(0.7, 0.7), legend.title=element_text(size=4)) + ylab("UMAP_2") + xlab("UMAP_1")
 
 Fig5b
 Fig5c
@@ -2211,6 +1992,7 @@ Fig5b <- readRDS("Fig5b.rds")
 Fig5c <- readRDS("Fig5c.rds")
 Fig5d <- readRDS("Fig5d.rds")
 
+wrap_plots(Fig5b, Fig5c, Fig5d, ncol = 3)
 
 #FeatureScatter(data.umap, feature1 = "PTScore1", feature2 = "LMScore1", split.by = "PDX", group.by = "signature", cols = c(LM = "#E6550D", PT = "#6BAED6", Both = "#8B00FF", None = "#D3D3D3"))
 
@@ -2224,7 +2006,7 @@ Fig5d <- readRDS("Fig5d.rds")
 ```{r Barplot, percentage of signatures}
 CellLine <- c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "Extra")
 Signature <- c(rep(c("LM"), 3), "Extra")
-Percentage <- c(c(length(WhichCells(onlyPT1, expression = LMprofileSymb == "LM+"))/length(colnames(onlyPT1))), c(length(WhichCells(onlyPT2, expression = LMprofileSymb == "LM+"))/length(colnames(onlyPT2))), c(length(WhichCells(onlyPT3, expression = LMprofileSymb == "LM+"))/length(colnames(onlyPT3))), c(0.025))
+Percentage <- c(c(length(WhichCells(onlyPT1, expression = LMprofile == "LM-like"))/length(colnames(onlyPT1))), c(length(WhichCells(onlyPT2, expression = LMprofile == "LM-like"))/length(colnames(onlyPT2))), c(length(WhichCells(onlyPT3, expression = LMprofile == "LM-like"))/length(colnames(onlyPT3))), c(0.015))
 
 barplotData <- data.frame(CellLine, Signature, Percentage)
 
@@ -2232,7 +2014,7 @@ Fig5a <- ggplot(barplotData, aes(fill=Signature, y=Percentage, x=CellLine)) +
   geom_col() + 
   ggtitle("Percentage cells with LM profile") +
   scale_fill_manual(values = c("LM" = "#E6550D", "Extra" = "white")) +
-  scale_y_continuous(breaks = seq(0, 0.025, by = 0.005), labels = scales::label_percent(), expand = c(0, 0)) +
+  scale_y_continuous(breaks = seq(0, 0.015, by = 0.005), labels = scales::label_percent(), expand = c(0, 0)) +
   scale_x_discrete(limits = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "Extra"), labels = c("PT LU-NB-1", "PT LU-NB-2", "PT LU-NB-3", "")) +
   theme_minimal() +
   geom_text(aes(label = 100*round(Percentage, 4)), position = position_dodge(width = 1), vjust = -0.5, color = "black", size = 4) +
@@ -2261,26 +2043,6 @@ Fig5a <- readRDS("Fig5a.rds")
 
 
 
-```{r DE DESeq 2 in PT LM score vs not LM score}
-#pseudobulk
-#pseudoScore <- AggregateExpression(onlyPT, assays = "RNA", return.seurat = T, group.by = c("PDX", "LMprofile"))
-
-#Idents(pseudoScore) <- "LMscoreCutoff"
-
-#LMScore.de <- FindMarkers(object = pseudoScore, 
-#                            ident.1 = "TRUE", 
-#                            ident.2 = "FALSE",
-#                            test.use = "DESeq2",
-#                            min.pct = 0.25)
-
-#saveRDS(LMScore.de, file = "DEObject_Pseudobulk_LMscoreCutoff.rds")
-LMScore.de <- readRDS("DEObject_Pseudobulk_LMscoreCutoff.rds")
-
-#rm(pseudoScore)
-#gc()
-#head(LMScore.de, n = 60)
-```
-
 ```{r DESeq2 with DESeq2 package, LM+ PT cells}
 PT.sce <- as.SingleCellExperiment(onlyPT)
 PT.sce$model_type <- paste0(PT.sce$mouse, "_", PT.sce$LMprofile)
@@ -2305,7 +2067,7 @@ colData(PTpbulked)$group_id <- factor(colData(PTpbulked)$group_id)
 PTDeseqObj <- DESeqDataSetFromMatrix(countData = assay(PTpbulked), colData = colData(PTpbulked), design = ~ model_id + group_id)
 
 PTDeseqObj <- DESeq(PTDeseqObj)
-PTDeseqRes <- results(PTDeseqObj, contrast = c("group_id", "LM_like", "not_LM_like"))
+PTDeseqRes <- results(PTDeseqObj, contrast = c("group_id", "LM-like", "not LM-like"))
 PTDeseqRes <- PTDeseqRes[order(PTDeseqRes$padj),]
 PTDeseqRes$gene <- rownames(PTDeseqRes)
 
@@ -2315,33 +2077,9 @@ PTDeseqRes <- readRDS("PTDeseqRes_PTvsLM.rds")
 
 ```
 
-```{r Getting sign genes}
-#significant genes
-#LMScore.de$gene <- rownames(LMScore.de)
-#LMscoreUpGenes <- LMScore.de$gene[which(LMScore.de$p_val_adj < 0.05 & LMScore.de$avg_log2FC > 0.5)]
-#LMscoreDownGenes <- LMScore.de$gene[which(LMScore.de$p_val_adj < 0.05 & LMScore.de$avg_log2FC < -0.5)]
-#signGenes <- data.de$gene[which(data.de$p_val_adj < 0.05)]
-#
-#LMscoreUpGenes <- setdiff(LMscoreUpGenes, upGenesDES)
-#LMscoreDownGenes <- setdiff(LMscoreDownGenes, downGenesDES)
-#LMscoreSignGenes <- c(LMscoreUpGenes, LMscoreDownGenes)
-
-#saveRDS(LMscoreUpGenes, file = "List_uppGenes_LMscore.rds")
-#saveRDS(LMscoreDownGenes, file = "List_downGenes_LMscore.rds")
-#saveRDS(LMscoreSignGenes, file = "List_signGenes_LMscore.rds")
-
-LMscoreUpGenes <- readRDS("List_uppGenes_LMscore.rds")
-LMscoreDownGenes <- readRDS("List_downGenes_LMscore.rds")
-LMscoreSignGenes <- readRDS("List_signGenes_LMscore.rds")
-
-#print(length(LMscoreSignGenes))
-#print(length(LMscoreUpGenes))
-#print(length(LMscoreDownGenes))
-```
-
 ```{r Getting sign Genes from DESeq2}
-PTupGenesDES <- PTDeseqRes$gene[which(PTDeseqRes$padj < 0.01 & PTDeseqRes$log2FoldChange > 0.5)]
-PTdownGenesDES <- PTDeseqRes$gene[which(PTDeseqRes$padj < 0.01 & PTDeseqRes$log2FoldChange < -0.5)]
+PTupGenesDES <- PTDeseqRes$gene[which(PTDeseqRes$padj < 0.01 & PTDeseqRes$log2FoldChange > 2)]
+PTdownGenesDES <- PTDeseqRes$gene[which(PTDeseqRes$padj < 0.01 & PTDeseqRes$log2FoldChange < -2)]
 PTsignGenesDES <- c(PTupGenesDES, PTdownGenesDES)
 
 saveRDS(PTupGenesDES, file = "List_PTupGenesDES_LM-PT.rds")
@@ -2353,39 +2091,82 @@ PTdownGenesDES <- readRDS("List_PTdownGenesDES_LM-PT.rds")
 PTsignGenesDES <- readRDS("List_PTsignGenesDES_LM-PT.rds")
 ```
 
-```{r Volcplot of PT LM singature genes}
-#Volcanoplot
-LMscoreVolcplot <- LMScore.de %>%
-  mutate(gene = rownames(LMScore.de),
-         significance = case_when(
-           avg_log2FC > 0.5 & p_val_adj < 0.05 ~ "Upregulated",
-           avg_log2FC < -0.5 & p_val_adj < 0.05 ~ "Downregulated",
-           TRUE ~ "Not significant"
-         ))
-top_genes <- LMScore.de %>%
-  arrange(p_val_adj) %>%
-  dplyr::slice(1:6)
+```{r}
+sharedLMandLMlike <- intersect(PTupGenesDES, upGenesDES)
+# Q: What kind of plot is good to show that some genes in upGenes are differentially expressed in LM-like cells in PT already?
+# A: Venn diagram? Barplot of how many genes in upGenes are also in PTupGenes? Heatmap of expression of shared genes in PT and LM?
+# Q: Maybe a Venn diagram, how can this be done in R?
+# A: Using the VennDiagram package, you can create a Venn diagram to show the overlap between the two gene sets. Here's an example of how to do this:
+library(VennDiagram)
+venn.plot <- venn.diagram(
+  x = list("LM-DEG" = upGenesDES, "LM-like-DEG" = PTupGenesDES),
+  category.names = c("LM-DEG", "LM-like-DEG"),
+  filename = NULL,
+  fill = c("#A61C3C", "#E6550D"),
+  alpha = 0.6,
+  col = "black",
+  lwd = 2,
+  cex = 2,
+  fontface = "bold",
+  cat.cex = 2,
+  cat.fontface = "bold",
+  cat.col = c("#A61C3C", "#E6550D"),
+  cat.pos = c(-20, 20),
+  cat.dist = c(0.05, 0.05),
+  margin = 0.1,
+  output=TRUE
+)
+venn.plot
 
-ggplot(LMscoreVolcplot, aes(x = avg_log2FC, y = -log10(p_val_adj), color = gene)) +
-  geom_point(alpha = 0.5) +
-  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
-                                "Not significant" = "grey",
-                                "Upregulated" = "#E6550D", 
-                                "ASPM" = "#E6550D", "ID2" = "#E6550D", "ZBTB18" = "#E6550D")) +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  geom_point(size = 1) +
-  geom_text_repel(data = top_genes, aes(label = gene), size = 2, max.overlaps = 20) +
-  theme_minimal() +
-  labs(title = "LMscore 0.1 cut-off: Differentially Expressed Genes",
-       x = "Average log2 Fold Change",
-       y = "-log10 Adjusted P-value")
-rm(LMscoreVolcplot, top_genes)
+install.packages("UpSetR")
+library(UpSetR)
+data <- list("LM-DEG" = upGenesDES, "LM-like-DEG" = PTupGenesDES)
+upset(fromList(data))
+
+#Create a plot with ggplot, with each gene as a dot, on a plane with padj from LM-DEG on x-axis and padj from LM-like-DEG on y-axis, and color the dots by whether they are in both sets or only one set, using ggplot2.
+#First create a data frame with the genes, their padj from both sets, and whether they are in both sets or only one set.
+LMandLMlikeGenes <- union(upGenesDES, PTupGenesDES) 
+
+df <- data.frame(gene = LMandLMlikeGenes, padj_1 = DeseqRes$padj[match(LMandLMlikeGenes, DeseqRes$gene)], padj_2 = PTDeseqRes$padj[match(LMandLMlikeGenes, PTDeseqRes$gene)])
+# Define threshold
+threshold <- 0.01
+# Add significance groups (Venn categories)
+df <- df %>%
+  mutate(
+    group = case_when(
+      padj_1 < threshold & padj_2 < threshold ~ "Both",
+      padj_1 < threshold & padj_2 >= threshold ~ "LM DEG",
+      padj_1 >= threshold & padj_2 < threshold ~ "LM-like DEG",
+      TRUE ~ "Neither"
+    ),
+    logp1 = -log10(padj_1),
+    logp2 = -log10(padj_2)
+  )
+# Plot
+ggplot(df, aes(x = logp1, y = logp2, color = group)) +
+  geom_point(size = 2, alpha = 0.8) +
+  #Add labels for shared significant genes above padj 8 for oneof the sets
+  geom_text_repel(data = subset(df, group == "Both" & (logp1 > 8 | logp2 > 8)), aes(label = gene), size = 3, max.overlaps = 20) +
+  scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.1))) +
+  scale_x_continuous(limits = c(0, 40), expand = expansion(mult = c(0, 0.1))) +
+  # Threshold lines
+  geom_vline(xintercept = -log10(threshold), linetype = "dashed") +
+  geom_hline(yintercept = -log10(threshold), linetype = "dashed") +
+  # Colors (match your red theme)
+  scale_color_manual(values = c("Both" = "#7F0000", "LM DEG" = "#D55E00", "LM-like DEG" = "#A61C3C")) +
+  labs(x = expression(-log[10](padj)~" LM DEG"),
+    y = expression(-log[10](padj)~" LM-like DEG"),
+    color = "Significance") +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "right",
+    panel.grid.minor = element_blank()
+  )
 ```
 
 ```{r Volcplot from DESeq2}
 #Volcanoplot
-PTVolcano.Deseq <- data.frame(gene = rownames(PTDeseqRes), log2FoldChange = PTDeseqRes$log2FoldChange, padj = PTDeseqRes$padj, significance = ifelse(PTDeseqRes$log2FoldChange > 0.5 & PTDeseqRes$padj < 0.01, "Upregulated", ifelse(PTDeseqRes$log2FoldChange < -0.5 & PTDeseqRes$padj < 0.01, "Downregulated", "Not significant")))
+PTVolcano.Deseq <- data.frame(gene = rownames(PTDeseqRes), log2FoldChange = PTDeseqRes$log2FoldChange, padj = PTDeseqRes$padj, significance = ifelse(PTDeseqRes$log2FoldChange > 2 & PTDeseqRes$padj < 0.01, "Upregulated", ifelse(PTDeseqRes$log2FoldChange < -2 & PTDeseqRes$padj < 0.01, "Downregulated", "Not significant")))
 
 PTtop_genes <- PTVolcano.Deseq %>%
   arrange(padj) %>%
@@ -2396,12 +2177,12 @@ Fig5e <- ggplot(PTVolcano.Deseq, aes(x = log2FoldChange, y = -log10(padj), color
   scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
                                 "Upregulated" = "#E6550D")) +
-  geom_vline(xintercept = c(-0.5, 0.5), linetype = "dashed") +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
   geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
   geom_point(size = 1) +
   geom_text_repel(data = PTtop_genes, aes(label = gene), size = 2, max.overlaps = 20) +
   theme_minimal() +
-  labs(title = "LM+: Differentially Expressed Genes",
+  labs(title = "LM-like: Differentially Expressed Genes",
        x = "Average log2 Fold Change",
        y = "-log10 Adjusted P-value")
 
@@ -2522,19 +2303,21 @@ signGenesBM <- readRDS("List_signGenesBM_BM-PT.rds")
 DeseqResBM <- readRDS("DeseqResBM_BMvsPT.rds")
 BMcells <- readRDS("List_BMposLMcells.rds")
 
-BMupGenes <- intersect(upGenesBM, rownames(onlyPT))
-BMdownGenes <- intersect(downGenesBM, rownames(onlyPT))
-BMsignGenes <- intersect(signGenesBM, rownames(onlyPT))
+#Genes from BM need to be present in both datasets
+BMupGenes <- intersect(upGenesBM, rownames(data.umap))
+BMdownGenes <- intersect(downGenesBM, rownames(data.umap))
+BMsignGenes <- intersect(signGenesBM, rownames(data.umap))
 
+#Combining and intersecting
 CommonUpGenes <- intersect(BMupGenes, upGenesDES)
 CommonDownGenes <- intersect(BMdownGenes, downGenesDES)
 
-CombinedUpList <- c(BMupGenes, upGenesDES)
-CombinedGeneList <- c(BMsignGenes, signGenesDES)
+CombinedUpList <- union(BMupGenes, upGenesDES)
+CombinedGeneList <- union(BMsignGenes, signGenesDES)
 
 onlyPT <- AddModuleScore(onlyPT, features = list(BMupGenes), name = "BMScore")
 onlyPT$BMprofileSymb <- ifelse(colnames(onlyPT) %in% BMcells, "BM+", "BM-")
-onlyPT$profile <- ifelse(onlyPT$LMprofileSymb == "LM+" & onlyPT$BMprofileSymb == "BM+", "Both", ifelse(onlyPT$LMprofileSymb == "LM+" & !(onlyPT$BMprofileSymb == "BM+"), "LM+", ifelse(!(onlyPT$LMprofileSymb == "LM+") & onlyPT$BMprofileSymb == "BM+", "BM+", "None")))
+
 
 FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "PDX", group.by = "PDX", cols = cols_PDX)
 Fig6a <- FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "seurat_clusters", group.by = "seurat_clusters", cols = cols_clust) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("BMScore") + xlab("LMScore")
@@ -2562,7 +2345,7 @@ corrProb <- cor(data_matt, method = "spearman", use = "complete.obs")
 
 corrProbAnn <- HeatmapAnnotation(Signature = ifelse(colnames(corrProb) %in% upGenesDES & colnames(corrProb) %in% upGenesBM, "Both", ifelse(colnames(corrProb) %in% upGenesDES & !(colnames(corrProb) %in% upGenesBM), "LM", "BM")), show_legend = FALSE, col = list(Signature = c("Both" = "orange", "LM" = "red", "BM" = "yellow")), annotation_label = c(" "))
 corrProbAnnR <- rowAnnotation(Signature = ifelse(colnames(corrProb) %in% upGenesDES & colnames(corrProb) %in% upGenesBM, "Both", ifelse(colnames(corrProb) %in% upGenesDES & !(colnames(corrProb) %in% upGenesBM), "LM", "BM")), show_legend = TRUE, col = list(Signature = c("Both" = "orange", "LM" = "red", "BM" = "yellow")), annotation_label = c(" "))
-corr_col <- colorRamp2(c(-1, 0, 1), c("blue", "white", "red"))
+corr_col <- colorRamp2(c(-0.2, 0.15, 0.6), c("blue", "white", "red"))
 
 h <- Heatmap(corrProb, name = "Correlation", clustering_distance_rows = "spearman", clustering_distance_columns = "spearman", cluster_rows = TRUE, cluster_columns = TRUE, show_column_dend = TRUE, col = corr_col, show_column_names = TRUE, show_row_dend = TRUE , top_annotation = corrProbAnn, left_annotation = corrProbAnnR, show_heatmap_legend = TRUE, row_names_side = "right", column_dend_side = "top", column_names_rot = 45, row_gap = unit(1, "mm"), column_gap = unit(1, "mm"), row_dend_width = unit(2, "cm"), column_dend_height = unit(2, "cm"), row_names_gp = gpar(fontsize = 5), column_names_gp = gpar(fontsize = 5))
 
@@ -2579,17 +2362,19 @@ BMDeseqRes <- DeseqResBM[rownames(DeseqResBM) %in% rownames(DeseqRes), ]
 LMDeseqRes <- DeseqRes[rownames(DeseqRes) %in% rownames(BMDeseqRes), ]
 
 
-PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange, log2FoldChangeBM = BMDeseqRes$log2FoldChange, significance = ifelse(LMDeseqRes$log2FoldChange > 1 & BMDeseqRes$log2FoldChange > 1, "Upregulated", ifelse(LMDeseqRes$log2FoldChange < -1 & BMDeseqRes$log2FoldChange < -1, "Downregulated", "Not significant")))
+PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange, log2FoldChangeBM = BMDeseqRes$log2FoldChange, significance = ifelse(LMDeseqRes$log2FoldChange > 2 & BMDeseqRes$log2FoldChange > 2, "Both", ifelse(LMDeseqRes$log2FoldChange < -2 & BMDeseqRes$log2FoldChange < -2, "PT Both", ifelse(LMDeseqRes$log2FoldChange < -2 & BMDeseqRes$log2FoldChange > 2, "BM", ifelse(LMDeseqRes$log2FoldChange > 2 & BMDeseqRes$log2FoldChange < -2, "LM", "Not significant")))))
 
-AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "Upregulated" | PTLMandBMFC$significance == "Downregulated"), ]
+AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "Both" | PTLMandBMFC$significance == "PT Both"| PTLMandBMFC$significance == "BM"| PTLMandBMFC$significance == "LM"), ]
 
 Fig6d <- ggplot(PTLMandBMFC, aes(x = log2FoldChangeLM, y = log2FoldChangeBM, color = significance)) +
   geom_point(alpha = 0.5) +
-  scale_color_manual(values = c("Downregulated" = "#6BAED6", #"#00AFBB"
+  scale_color_manual(values = c("PT Both" = "#6BAED6", #"#00AFBB"
                                 "Not significant" = "grey",
-                                "Upregulated" = "#E6550D")) +
-  geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-  geom_hline(yintercept = c(-1, 1), linetype = "dashed") +
+                                "Both" = "orange",
+                                "BM" = "gold",
+                                "LM" = "red")) +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
+  geom_hline(yintercept = c(-2, 2), linetype = "dashed") +
   geom_point(size = 1) +
   geom_text_repel(data = AllHighlightedGenes, aes(label = gene), size = 2, max.overlaps = 20) +
   theme_minimal() +
@@ -2627,6 +2412,50 @@ Fig6g <- readRDS("Fig6g.rds")
 Fig6g
 ```
 
+```{r again concordance plot}
+df <- data.frame(gene = CombinedUpList, padj_1 = DeseqRes$padj[match(CombinedUpList, DeseqRes$gene)], padj_2 = DeseqResBM$padj[match(CombinedUpList, DeseqResBM$gene)])
+df <- df %>%
+  mutate(
+    padj_1 = ifelse(is.na(padj_1), 1, padj_1),
+    padj_2 = ifelse(is.na(padj_2), 1, padj_2)
+  )
+# Define threshold
+threshold <- 0.01
+# Add significance groups (Venn categories)
+df <- df %>%
+  mutate(
+    group = case_when(
+      padj_1 < threshold & padj_2 < threshold ~ "Both",
+      padj_1 < threshold & padj_2 >= threshold ~ "LM DEG",
+      padj_1 >= threshold & padj_2 < threshold ~ "BM DEG",
+      TRUE ~ "Neither"
+    ),
+    logp1 = -log10(padj_1),
+    logp2 = -log10(padj_2)
+  )
+# Plot
+ggplot(df, aes(x = logp1, y = logp2, color = group)) +
+  geom_point(size = 2, alpha = 0.8) +
+  #Add labels for shared significant genes above padj 8 for oneof the sets
+  geom_text_repel(data = subset(df, group == "Both"  | (logp1 > 20 | logp2 > 5)), aes(label = gene, color = "black"), size = 3, max.overlaps = 20) +
+  scale_y_continuous(limits = c(-0.1, 10), expand = expansion(mult = c(0, 0.1))) +
+  scale_x_continuous(limits = c(-0.1, 80), expand = expansion(mult = c(0, 0.1))) +
+  # Threshold lines
+  geom_vline(xintercept = -log10(threshold), linetype = "dashed") +
+  geom_hline(yintercept = -log10(threshold), linetype = "dashed") +
+  # Colors (match your red theme)
+  scale_color_manual(values = c("Both" = "orange", "LM DEG" = "red", "BM DEG" = "yellow")) +
+  labs(x = expression(-log[10](padj)~" LM DEG"),
+    y = expression(-log[10](padj)~" BM DEG"),
+    color = "Significance") +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "right",
+    panel.grid.minor = element_blank()
+  )
+
+
+```
 
 
 ```{r Feature plot BM vs LM}
@@ -2644,6 +2473,36 @@ saveRDS(Fig6f, file = "Fig6f.rds")
 
 Fig6e
 Fig6f
+```
+```{r FoldChange BMvsPT genes, only sign genes colored}
+BMDeseqRes <- DeseqResBM[rownames(DeseqResBM) %in% rownames(DeseqRes), ]
+LMDeseqRes <- DeseqRes[rownames(DeseqRes) %in% rownames(BMDeseqRes), ]
+
+
+PTLMandBMFC <- data.frame(gene = rownames(LMDeseqRes), log2FoldChangeLM = LMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), LMDeseqRes$gene)], log2FoldChangeBM = BMDeseqRes$log2FoldChange[match(rownames(LMDeseqRes), BMDeseqRes$gene)], significance = ifelse(LMDeseqRes$gene %in% CommonUpGenes, "Both", ifelse(LMDeseqRes$gene %in% CommonDownGenes, "PT Both", ifelse(LMDeseqRes$gene %in% BMupGenes, "BM", ifelse(LMDeseqRes$gene %in% upGenesDES, "LM", "Not significant")))))
+
+AllHighlightedGenes <- PTLMandBMFC[which(PTLMandBMFC$significance == "Both" | PTLMandBMFC$significance == "PT Both"| PTLMandBMFC$significance == "BM"| PTLMandBMFC$significance == "LM"), ]
+
+Fig6d <- ggplot(PTLMandBMFC, aes(x = log2FoldChangeLM, y = log2FoldChangeBM, color = significance)) +
+  geom_point(alpha = 0.5) +
+  scale_color_manual(values = c("PT Both" = "#6BAED6", #"#00AFBB"
+                                "Not significant" = "grey",
+                                "Both" = "orange",
+                                "BM" = "gold",
+                                "LM" = "red")) +
+  geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
+  geom_hline(yintercept = c(-2, 2), linetype = "dashed") +
+  geom_point(size = 1) +
+  geom_text_repel(data = AllHighlightedGenes, aes(label = gene), size = 2, max.overlaps = 20) +
+  theme_minimal() +
+  labs(title = "Fold change of LM and BM genes",
+       x = "Average log2 Fold Change LM-PT",
+       y = "Average log2 Fold Change BM-PT")
+
+saveRDS(Fig6d, "Fig6d.rds")
+Fig6d <- readRDS("Fig6d.rds")
+
+Fig6d
 ```
 
 ###### Combining Plots
