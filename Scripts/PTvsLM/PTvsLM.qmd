@@ -2323,7 +2323,7 @@ onlyPT$BMprofileSymb <- ifelse(colnames(onlyPT) %in% BMcells, "BM+", "BM-")
 
 
 FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "PDX", group.by = "PDX", cols = cols_PDX)
-Fig6a <- FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "seurat_clusters", group.by = "seurat_clusters", cols = cols_clust) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("BMScore") + xlab("LMScore")
+Fig6a <- FeatureScatter(onlyPT, feature1 = "LMScore1", feature2 = "BMScore1", split.by = "seurat_clusters", group.by = "seurat_clusters", cols = cols_clust, ncol = 5) + theme(axis.line = element_line(color = "black"), axis.title = element_text(size = 15, family = "sans", color = "black"), axis.ticks = element_blank(), axis.text = element_blank(), panel.border = element_rect(color = "black", size = 1)) + ylab("BMScore") + xlab("LMScore")
 
 saveRDS(Fig6a, "Fig6a.rds")
 Fig6a <- readRDS("Fig6a.rds")
